@@ -64,7 +64,7 @@ SKILL_TMPDIR="$PWD/.tmp-$(awk 'BEGIN{srand()}{a[NR]=tolower($0)}END{for(i=1;i<=3
 
 Then use the literal output path in all subsequent commands:
 ```bash
-TMPDIR=/Users/jerod/cases/smith/.tmp-apple-walrus-quilt PYTHONPATH=/path/to/docx/ /path/to/python script.py
+TMPDIR=/path/to/cases/smith/.tmp-apple-walrus-quilt PYTHONPATH=/path/to/docx/ /path/to/python script.py
 ```
 
 ### Benefits
