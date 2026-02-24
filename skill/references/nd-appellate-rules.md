@@ -122,6 +122,46 @@ Current version at https://www.ndcourts.gov/legal-resources/rules/ndrappp/4
 
 ---
 
+## Rule 26. Computing and Extending Time
+
+### (a) Computing Time
+The following rules apply in computing any period of time specified in these rules or in any local rule, court order, or in any statute that does not specify a method of computing time:
+
+**(1) Period Stated in Days or a Longer Unit.** When the period is stated in days or a longer unit of time:
+- (A) exclude the day of the event that triggers the period;
+- (B) count every day, including intermediate Saturdays, Sundays, and legal holidays; and
+- (C) include the last day of the period, but if the last day is a Saturday, Sunday, or legal holiday, the period continues to run until the end of the next day that is not a Saturday, Sunday, or legal holiday.
+
+**(2) Period Stated in Hours.** When the period is stated in hours:
+- (A) begin counting immediately on the occurrence of the event that triggers the period;
+- (B) count every hour, including hours during intermediate Saturdays, Sundays, and legal holidays; and
+- (C) if the period would end on a Saturday, Sunday, or legal holiday, the period continues to run until the same time on the next day that is not a Saturday, Sunday, or legal holiday.
+
+**(3) Inaccessibility of the Clerk's Office.** Unless the court orders otherwise, if the clerk's office is inaccessible:
+- (A) on the last day for filing under Rule 26(a)(1), then the time for filing is extended to the first accessible day that is not a Saturday, Sunday, or legal holiday; or
+- (B) during the last hour for filing under Rule 26(a)(2), then the time for filing is extended to the same time on the first accessible day that is not a Saturday, Sunday, or legal holiday.
+
+**(4) "Last Day" Defined.** Unless a different time is set by a statute, local rule, or court order, the last day ends:
+- (A) for electronic filing, at midnight in the court's time zone;
+- (B) for filing by mail or third-party commercial carrier, at the latest time for the method chosen for delivery to the post office or third-party commercial carrier; and
+- (C) for filing by other means, when the clerk's office is scheduled to close.
+
+**(5) "Next Day" Defined.** The "next day" is determined by continuing to count forward when the period is measured after an event and backward when measured before an event.
+
+**(6) "Legal Holiday" Defined.** As used in this rule, "legal holiday" means a day set aside as a holiday under N.D.C.C. §§ 1-03-01, 1-03-02 and 1-03-02.1.
+
+### (b) Extending Time
+For good cause, the court may extend the time prescribed by these rules or by its order to perform any act, or may permit an act to be done after that time expires. The court may not extend the time to file a notice of appeal, except as authorized by law.
+
+### (c) Additional Time after Service by Mail or Third-Party Commercial Carrier
+When a party may or must act within a specified time after being served, three days must be added after the period would otherwise expire, unless the document is delivered on the date of service stated in the proof of service. For purposes of this rule, a document that is served electronically is treated as delivered on the date of service stated in the proof of service.
+
+Amended effective March 1, 2011.
+
+Current version at https://www.ndcourts.gov/legal-resources/rules/ndrappp/26
+
+---
+
 ## Quick Reference: Appeal Deadlines
 
 | Case Type | Deadline | Rule |

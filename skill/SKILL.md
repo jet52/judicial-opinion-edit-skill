@@ -7,7 +7,18 @@ description: "Appellate judicial opinion and bench memo editor and proofreader. 
 
 Edit draft judicial opinions and bench memos to improve grammar, clarity, conciseness, professional tone, citation accuracy, and analytical rigor. Produce a Word document with tracked changes and a companion analysis document.
 
+## Environment Detection
+
+Determine your runtime environment from available capabilities:
+
+- **CLI mode**: You have access to the Bash, Task, TaskOutput, and AskUserQuestion tools, and can read/write the local file system. Follow the full workflow as written.
+- **Web mode**: You are running in Claude Projects or a similar web environment without access to Bash, Task, or file system tools. Follow the **Web mode** fallbacks noted throughout this document.
+
+Do not ask the user which mode to use — sense it from your available tools.
+
 ## Fixed Paths — Do Not Search
+
+**Web mode:** Skip the next five sections (Fixed Paths, Python Environment, Node.js Environment, LibreOffice, Temporary Files) — they apply only in CLI mode. Proceed to Workflow.
 
 All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to locate them.**
 
@@ -83,6 +94,8 @@ Also use this PATH prefix for document-to-image conversion (`soffice --headless 
 
 ### Step 0: Initialize and Scan Working Directory
 
+**Web mode:** Skip temp directory creation and directory scanning. The user will paste text or upload .docx/.pdf files directly in the conversation. Claude can read uploaded .docx and .pdf files natively. Proceed to Step 0.1.
+
 **First, create the temp directory** with a unique random name:
 ```bash
 SKILL_TMPDIR="$PWD/.tmp-$(awk 'BEGIN{srand()}{a[NR]=tolower($0)}END{for(i=1;i<=3;i++)printf "%s%s",(i>1?"-":""),a[int(rand()*NR)+1]}' /usr/share/dict/words)" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
@@ -116,7 +129,7 @@ Classify the document as `DOC_TYPE = opinion` or `DOC_TYPE = memo`. Check in ord
 
 1. **Invocation keywords:** If the user's prompt contains "bench memo", "memo", "law clerk draft", or similar → `memo`
 2. **Document content:** If the document contains markers typical of bench memos (e.g., "BENCH MEMORANDUM", "BENCH MEMO", "Issues Presented", "Recommendation", "Staff Attorney" heading patterns) → `memo`
-3. **Ambiguous:** If neither signal is present and the document could be either type, ask the user via `AskUserQuestion`:
+3. **Ambiguous:** If neither signal is present and the document could be either type, ask the user. **CLI mode:** Use `AskUserQuestion` as shown below. **Web mode:** Ask the user directly in conversation.
    - **Question:** "Is this a draft judicial opinion or a bench memo?"
    - **Header:** "Doc type"
    - **Options:**
@@ -127,6 +140,8 @@ Classify the document as `DOC_TYPE = opinion` or `DOC_TYPE = memo`. Check in ord
 Store `DOC_TYPE` and reference it in conditional sections of Passes 1 and 5 and the analysis document output.
 
 ### Step 0.5: Ask Output Preferences
+
+**Web mode:** Do not ask for output preferences. Only the markdown analysis document is available — tracked-changes .docx requires CLI tools (Bash, docx skill, LibreOffice). State this briefly: "In this environment I can produce a markdown analysis report but not a tracked-changes .docx." Proceed unless the user objects.
 
 **Ask the user which outputs they want:**
 
@@ -162,6 +177,20 @@ Store the user's choice and adjust the workflow accordingly:
 
 **If the opinion is plain text or another format:** create a new .docx using the docx skill, with tracked-change markup showing all edits.
 
+**Web mode workflow:**
+1. Read `references/style-guide.md` from project knowledge. If not found, tell the user to upload it.
+2. Skip docx skill files (not needed without .docx output).
+3. Read the draft from the conversation (pasted text or uploaded file).
+4. Perform Pass 1 inline.
+5. Perform Pass 2 inline (regardless of length).
+6. Perform Pass 3A (format) inline. Perform Pass 3B (verification) inline with web search fallback.
+7. Perform Pass 4 inline if the user uploaded source PDFs. Read them directly.
+8. Perform Pass 5 inline.
+9. Skip .docx assembly.
+10. Produce the analysis document as markdown in the conversation.
+
+**Context limits:** Without subagents, very long documents (50+ paragraphs) may approach context limits. If this occurs, prioritize: Pass 2 → Pass 5 → Pass 3A → Pass 1 → Pass 3B → Pass 4. Inform the user which passes were completed.
+
 ## Editing Instructions
 
 Adopt the persona of an experienced appellate attorney working for a state supreme court. Be careful and precise.
@@ -192,6 +221,8 @@ Provide the subagent with these instructions:
 - If **neither** the memo nor the parties address appealability at all → return a **warning** that the memo should confirm appellate jurisdiction
 - If the memo does address appealability → verify the analysis against `nd-appellate-rules.md` as with opinions
 - Return a concise summary: any jurisdictional concerns or warnings. If the memo adequately addresses jurisdiction, state that explicitly.
+
+**Web mode:** Perform inline. Read `references/nd-appellate-rules.md` from project knowledge. If unavailable, use web search to find the relevant N.D.R.App.P. rules at ndcourts.gov. Analyze the document's procedural posture and standard of review. Report findings in the same format.
 
 ### Pass 2: Style and Grammar
 Apply in priority order. Full details in `references/style-guide.md`.
@@ -252,6 +283,8 @@ When the opinion exceeds 30 paragraphs, delegate Pass 2 to a Task subagent (suba
 
 **In main context after collection:** Apply the returned edits mechanically when building the tracked-changes OOXML in step 9. Each `OLD`/`NEW` pair becomes a tracked deletion + tracked insertion. Each `COMMENT` entry becomes a document comment anchored to the specified text.
 
+**Web mode:** Always perform inline, regardless of document length. Apply the same rules. Use the structured entry format (¶, OLD, NEW, REASON) for internal tracking, then incorporate into the analysis document.
+
 ### Pass 3: Citation Check (Delegated to Subagent)
 
 Pass 3 has two parts: (A) Bluebook format checking, done in the main context, and (B) substantive citation verification against local ND opinion files, delegated to a subagent.
@@ -309,6 +342,12 @@ Perform these checks in main context as part of Passes 2/5 work:
 >
 > 6. **Return** the completed table and a summary: [X] ND citations checked. [Y] quotes verified. [Z] quote discrepancies. [W] files not found. [V] citations that may not support the stated proposition.
 
+**Web mode:** No local ND opinion corpus is available. Fallback verification:
+1. For each ND citation, use web search to locate the opinion on ndcourts.gov or Google Scholar.
+2. If found, verify quotes and substantive support as described above.
+3. If not found, mark as "Not verified — web search unsuccessful."
+4. Note in the Citation Verification section: "Citations verified via web search. Local opinion corpus unavailable. Results may be incomplete."
+
 ### Pass 4: Fact Check (Delegated to Subagent)
 
 When the user provides briefs, record documents, or other source materials alongside the draft opinion, **do not** read the PDF materials into the main context. Delegate fact-checking to a subagent to keep potentially large PDF content out of the main context window.
@@ -336,6 +375,8 @@ Do **not** include: legal standards and rules (checked in Passes 1 and 3), the c
 
 **No source materials:** If the user does not provide source materials, skip delegation. Note this limitation in the analysis and flag any factual assertions that cannot be independently verified.
 
+**Web mode:** If the user uploaded PDF source materials, read them directly (no pdftotext needed). Perform fact-checking inline. For large documents, focus on the extracted claims rather than reading entire files. If no source materials were uploaded, note this limitation.
+
 ### Pass 5: Analytical Rigor
 
 Checks vary by `DOC_TYPE`. Full details for both document types are in `references/style-guide.md`.
@@ -359,6 +400,8 @@ Checks vary by `DOC_TYPE`. Full details for both document types are in `referenc
 - **Standard of review:** Does the memo correctly identify and consistently apply the appropriate standard of review for each issue?
 
 ## Output Format
+
+**Web mode:** Produce only the analysis document as markdown in the conversation. The tracked-changes .docx section does not apply. The analysis document template and structure are the same.
 
 Produce the outputs requested by the user in Step 0.5.
 

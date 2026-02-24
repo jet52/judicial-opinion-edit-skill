@@ -12,6 +12,57 @@ Appellate judicial opinion editor and proofreader. Produces a Word document (.do
 
 ## Installation
 
+### Claude Desktop
+
+1. Download `judicial-opinion-edit-skill.zip`
+2. Open Settings > Features > Claude's Computer Use > Skills directory
+3. Set the skills directory to a folder of your choice (e.g., `~/.claude/skills/`)
+4. Copy `skill/` contents into `<skills-dir>/judicial-opinion-edit/`
+5. Set up the Python venv and Node dependencies manually (see Option C above)
+
+### Claude Projects (web)
+
+1. Download `judicial-opinion-edit-skill.zip` from GitHub
+2. Open your Claude Project → Project Knowledge
+3. Upload `judicial-opinion-edit-skill.zip`
+4. Paste opinion text or upload .docx/.pdf files in conversation
+5. Use the same trigger phrases ("edit this opinion", "edit this bench memo", etc.)
+
+**Web mode limitations:**
+- Produces markdown analysis only (no tracked-changes .docx)
+- All passes run inline — no subagent delegation (may hit context limits on very long opinions)
+- Citation verification uses web search instead of local opinion corpus (less reliable)
+- No PDF splitting for large record packets (upload individual documents)
+
+## Usage
+
+Trigger phrases:
+
+- "Edit this opinion"
+- "Proofread this opinion"
+- "Review this draft opinion"
+- "Redline this opinion"
+- "Edit this draft order"
+
+Provide a `.docx` draft opinion in the working directory. Optionally include `.pdf` briefs or record materials for fact-checking.
+
+## File Structure
+
+```
+judicial-opinion-edit-skill/
+├── README.md
+├── Makefile
+├── install.sh
+├── .gitignore
+└── skill/
+    ├── SKILL.md
+    ├── TMPDIR-CONFIGURATION.md
+    ├── package.json
+    └── references/
+        ├── nd-appellate-rules.md
+        └── style-guide.md
+```
+
 ### Claude Code (CLI)
 
 **Option A: From .zip**
@@ -50,57 +101,14 @@ uv pip install defusedxml pikepdf splitmarks --python .venv/bin/python
 npm install
 ```
 
-### Claude Desktop
-
-1. Open Settings > Features > Claude's Computer Use > Skills directory
-2. Set the skills directory to a folder of your choice (e.g., `~/.claude/skills/`)
-3. Copy `skill/` contents into `<skills-dir>/judicial-opinion-edit/`
-4. Set up the Python venv and Node dependencies manually (see Option C above)
-
-### Claude Projects (web)
-
-1. Open your Claude project
-2. Go to Project Knowledge
-3. Upload the contents of `skill/SKILL.md` as a project knowledge file
-
-Note: The web version cannot execute scripts, access local files, or produce tracked-changes .docx output. It can still provide editorial analysis as text.
-
-## Usage
-
-Trigger phrases:
-- "Edit this opinion"
-- "Proofread this opinion"
-- "Review this draft opinion"
-- "Redline this opinion"
-- "Edit this draft order"
-
-Provide a `.docx` draft opinion in the working directory. Optionally include `.pdf` briefs or record materials for fact-checking.
-
-## File Structure
-
-```
-judicial-opinion-edit-skill/
-├── README.md
-├── Makefile
-├── install.sh
-├── .gitignore
-└── skill/
-    ├── SKILL.md
-    ├── TMPDIR-CONFIGURATION.md
-    ├── package.json
-    └── references/
-        ├── nd-appellate-rules.md
-        └── style-guide.md
-```
-
 ## External Dependencies
 
-| Dependency | Purpose | Required? |
-|-----------|---------|-----------|
-| Python 3.10+ | PDF/XML processing | Yes |
-| Node.js 18+ | DOCX generation | Yes |
-| LibreOffice | Document conversion/validation | Yes |
-| defusedxml | Safe XML parsing | Yes (installed by installer) |
-| pikepdf | PDF manipulation | Yes (installed by installer) |
-| splitmarks | PDF bookmark splitting | Yes (installed by installer) |
-| docx (npm) | DOCX document creation | Yes (installed by installer) |
+| Dependency   | Purpose                        | Required?                    |
+| ------------ | ------------------------------ | ---------------------------- |
+| Python 3.10+ | PDF/XML processing             | Yes                          |
+| Node.js 18+  | DOCX generation                | Yes                          |
+| LibreOffice  | Document conversion/validation | Yes                          |
+| defusedxml   | Safe XML parsing               | Yes (installed by installer) |
+| pikepdf      | PDF manipulation               | Yes (installed by installer) |
+| splitmarks   | PDF bookmark splitting         | Yes (installed by installer) |
+| docx (npm)   | DOCX document creation         | Yes (installed by installer) |
