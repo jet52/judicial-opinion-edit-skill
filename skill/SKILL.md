@@ -1,11 +1,11 @@
 ---
 name: judicial-opinion-edit
-description: "Appellate judicial opinion editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Use when the user provides a draft judicial opinion, court order, or legal memorandum for editing, proofreading, or style review. Triggers: edit opinion, proofread opinion, review draft opinion, judicial writing review, court opinion edit, redline opinion, edit draft order, appellate opinion editing. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court), Guberman's Point Taken, and Justices Gorsuch, Kagan, and Thomas."
+description: "Appellate judicial opinion and bench memo editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Use when the user provides a draft judicial opinion, court order, bench memo, or legal memorandum for editing, proofreading, or style review. Triggers: edit opinion, proofread opinion, review draft opinion, judicial writing review, court opinion edit, redline opinion, edit draft order, appellate opinion editing, edit memo, edit bench memo, proofread memo, review bench memo. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court), Guberman's Point Taken, and Justices Gorsuch, Kagan, and Thomas."
 ---
 
 # Judicial Opinion Editor
 
-Edit draft judicial opinions to improve grammar, clarity, conciseness, professional tone, citation accuracy, and analytical rigor. Produce a Word document with tracked changes and a companion analysis document.
+Edit draft judicial opinions and bench memos to improve grammar, clarity, conciseness, professional tone, citation accuracy, and analytical rigor. Produce a Word document with tracked changes and a companion analysis document.
 
 ## Fixed Paths — Do Not Search
 
@@ -90,13 +90,13 @@ SKILL_TMPDIR="$PWD/.tmp-$(awk 'BEGIN{srand()}{a[NR]=tolower($0)}END{for(i=1;i<=3
 **Capture the absolute path** printed by this command (e.g., `/path/to/cases/smith/.tmp-apple-walrus-quilt`). Use this literal path as `TMPDIR=<path>` in all subsequent commands — never use `$(pwd)` or other command substitution for TMPDIR.
 
 Then scan the current working directory for:
-- **`.docx` files** — potential draft opinions (or dissents)
+- **`.docx` files** — potential draft opinions, memos, or dissents
 - **`.pdf` files** — potential briefs, record packets, or supporting references
 
-If **exactly one `.docx`** is found, use it as the draft opinion.
+If **exactly one `.docx`** is found, use it as the draft document.
 If **exactly one `.pdf`** is found, use it as the record/briefs packet for fact-checking.
-If **more than one `.docx`** or **more than one `.pdf`** is found, ask the user which file(s) to use and their roles (e.g., majority opinion, dissent, briefs packet, supporting reference).
-If **no `.docx`** is found, ask the user to provide the opinion text.
+If **more than one `.docx`** or **more than one `.pdf`** is found, ask the user which file(s) to use and their roles (e.g., majority opinion, dissent, bench memo, briefs packet, supporting reference).
+If **no `.docx`** is found, ask the user to provide the document text.
 
 **Preparing PDF packets (do not read into main context):** PDF source materials are used only by the Pass 4 fact-checking subagent. In Step 0, identify and prepare the files but **do not read their contents**.
 
@@ -109,6 +109,22 @@ For large PDF files (typically > 50 MB), use `splitmarks` to split the PDF at it
 ~/.claude/skills/judicial-opinion-edit/.venv/bin/splitmarks packet.pdf -o split_output -v
 ```
 Pass the resulting file paths to the fact-checking subagent in Pass 4.
+
+### Step 0.1: Determine Document Type
+
+Classify the document as `DOC_TYPE = opinion` or `DOC_TYPE = memo`. Check in order:
+
+1. **Invocation keywords:** If the user's prompt contains "bench memo", "memo", "law clerk draft", or similar → `memo`
+2. **Document content:** If the document contains markers typical of bench memos (e.g., "BENCH MEMORANDUM", "BENCH MEMO", "Issues Presented", "Recommendation", "Staff Attorney" heading patterns) → `memo`
+3. **Ambiguous:** If neither signal is present and the document could be either type, ask the user via `AskUserQuestion`:
+   - **Question:** "Is this a draft judicial opinion or a bench memo?"
+   - **Header:** "Doc type"
+   - **Options:**
+     1. **Judicial opinion** — Draft opinion, concurrence, or dissent
+     2. **Bench memo** — Staff attorney or law clerk memo to the court
+4. **Default:** `opinion`
+
+Store `DOC_TYPE` and reference it in conditional sections of Passes 1 and 5 and the analysis document output.
 
 ### Step 0.5: Ask Output Preferences
 
@@ -152,7 +168,11 @@ Adopt the persona of an experienced appellate attorney working for a state supre
 
 ### Pass 1: Jurisdictional Check (Delegated to Subagent)
 
-**Do not** read `references/nd-appellate-rules.md` into the main context. Delegate this pass to a subagent using the Task tool (subagent_type: `general-purpose`) with the following instructions:
+**Do not** read `references/nd-appellate-rules.md` into the main context. Delegate this pass to a subagent using the Task tool (subagent_type: `general-purpose`) with instructions that vary by `DOC_TYPE`.
+
+#### If DOC_TYPE is `opinion` (default)
+
+Provide the subagent with these instructions:
 
 - Read `~/.claude/skills/judicial-opinion-edit/references/nd-appellate-rules.md`
 - Read the draft opinion file (provide the path) — focus on the procedural-posture and standard-of-review sections
@@ -160,6 +180,18 @@ Adopt the persona of an experienced appellate attorney working for a state supre
 - Verify: Does the opinion correctly identify the procedural posture and standard of review?
 - Verify: Are court rules cited accurately? Check against https://www.ndcourts.gov/legal-resources/rules
 - Return **only** a concise summary of findings: any jurisdictional issues, procedural-posture errors, or standard-of-review problems. If no issues found, state that explicitly.
+
+#### If DOC_TYPE is `memo`
+
+Provide the subagent with these instructions:
+
+- Read `~/.claude/skills/judicial-opinion-edit/references/nd-appellate-rules.md`
+- Read the draft memo file (provide the path)
+- Check whether the memo addresses appealability: timeliness, subject-matter jurisdiction, and procedural prerequisites (e.g., OMB notification for claims against the state under N.D.C.C. § 32-12.2-04)
+- Check whether the parties' briefs (if available in the working directory) raise jurisdictional issues
+- If **neither** the memo nor the parties address appealability at all → return a **warning** that the memo should confirm appellate jurisdiction
+- If the memo does address appealability → verify the analysis against `nd-appellate-rules.md` as with opinions
+- Return a concise summary: any jurisdictional concerns or warnings. If the memo adequately addresses jurisdiction, state that explicitly.
 
 ### Pass 2: Style and Grammar
 Apply in priority order. Full details in `references/style-guide.md`.
@@ -305,6 +337,11 @@ Do **not** include: legal standards and rules (checked in Passes 1 and 3), the c
 **No source materials:** If the user does not provide source materials, skip delegation. Note this limitation in the analysis and flag any factual assertions that cannot be independently verified.
 
 ### Pass 5: Analytical Rigor
+
+Checks vary by `DOC_TYPE`. Full details for both document types are in `references/style-guide.md`.
+
+#### If DOC_TYPE is `opinion` (default)
+
 - Flag potential dicta (statements unnecessary to the holding)
 - Flag unnecessary alternative rationales
 - Identify logical fallacies
@@ -312,6 +349,14 @@ Do **not** include: legal standards and rules (checked in Passes 1 and 3), the c
 - Read from the losing party's perspective: what would a critic seize on?
 - Flag holdings broader than necessary
 - Flag vague standards lacking guidance for future application
+
+#### If DOC_TYPE is `memo`
+
+- **Issue completeness:** Did the memo identify all issues raised on appeal? Are there issues the parties didn't raise but the court should consider (e.g., plain error, jurisdictional defects)?
+- **Balanced presentation:** Does the memo fairly state each side's strongest arguments? Does it steelman the weaker position or dismiss it too quickly?
+- **Recommendation quality:** Are recommendations clearly stated? Is each recommendation supported by the analysis? Are alternative outcomes acknowledged?
+- **Analytical gaps:** Are there unstated assumptions? Logical fallacies? Missing steps in the reasoning chain?
+- **Standard of review:** Does the memo correctly identify and consistently apply the appropriate standard of review for each issue?
 
 ## Output Format
 
@@ -324,13 +369,14 @@ Use the docx skill to produce a .docx with:
 - Comments (via comment.py) for substantive notes — explaining a change or flagging an issue
 
 ### Analysis document (if requested)
-Produce a document structured as:
+Produce a document structured as below. The **Substantive Concerns** section varies by `DOC_TYPE`.
 
 ```
 –Begin Analysis–
 
 ## Jurisdictional Notes
 [Issues with timeliness of appeal, procedural posture, or standard of review]
+[If DOC_TYPE is memo and jurisdiction was not addressed: include warning here]
 
 ## Summary of Edits
 [Brief overview of the types and volume of changes]
@@ -339,10 +385,14 @@ Produce a document structured as:
 
 | ¶ | Claim | Source Document(s) | Result | Notes |
 |---|-------|-------------------|--------|-------|
-| [¶ ref] | [Factual assertion from opinion] | [Record doc, brief, or transcript with pinpoint cite] | Verified / Unverified / Discrepancy | [Explanation if discrepancy or unverified] |
+| [¶ ref] | [Factual assertion from document] | [Record doc, brief, or transcript with pinpoint cite] | Verified / Unverified / Discrepancy | [Explanation if discrepancy or unverified] |
 
 **Summary:** [X] facts checked. [Y] verified. [Z] discrepancies. [W] unverified.
+```
 
+**If DOC_TYPE is `opinion`:**
+
+```
 ## Substantive Concerns
 
 ### Potential Dicta
@@ -356,7 +406,32 @@ Produce a document structured as:
 
 ### Logical Issues
 [Logical fallacies or unstated assumptions]
+```
 
+**If DOC_TYPE is `memo`:**
+
+```
+## Memo Analysis
+
+### Issue Completeness
+[Issues raised on appeal; issues not raised but potentially relevant (plain error, jurisdictional defects)]
+
+### Balance of Presentation
+[Whether each side's strongest arguments are fairly stated; steelmanning assessment]
+
+### Recommendation Assessment
+[Clarity and support for each recommendation; alternative outcomes acknowledged]
+
+### Analytical Gaps
+[Unstated assumptions, logical fallacies, missing reasoning steps]
+
+### Standard of Review Application
+[Whether the memo correctly identifies and consistently applies the standard of review for each issue]
+```
+
+**Both document types continue with:**
+
+```
 ## Citation Verification
 
 | ¶ | Citation | Quote Check | Alterations | Parenthetical OK? | Supports Proposition? | Notes |

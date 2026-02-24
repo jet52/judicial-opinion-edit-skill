@@ -96,6 +96,37 @@
 - Flag any sentence that could be read two ways and suggest clarification.
 - Consider whether the holding is broader than necessary and might apply to unintended situations.
 
+## Analytical Rigor Checks — Bench Memos
+
+These checks apply when editing bench memos (`DOC_TYPE = memo`). They replace the opinion-specific dicta/holdings/ambiguity checks above.
+
+### Issue Completeness
+- Verify the memo identifies every issue raised by the parties on appeal.
+- Check for issues the parties did not raise but the court should consider: plain error, jurisdictional defects, mootness, standing, or issues apparent from the record.
+- Flag any issue that appears in the briefs but is absent from the memo.
+
+### Balanced Presentation
+- Each side's strongest arguments should be fairly stated. The memo should not strawman or understate either position.
+- Steelman the weaker position: if the memo dismisses an argument in a sentence or two, flag it and assess whether the argument deserves more engagement.
+- Check whether the memo acknowledges contrary authority or distinguishes it, rather than ignoring it.
+
+### Recommendation Quality
+- Each recommendation should be clearly stated — not buried in analysis or implied.
+- Each recommendation must be supported by the preceding analysis. Flag any recommendation that appears to leap past the reasoning.
+- Alternative outcomes should be acknowledged. If the court could reasonably go either way, the memo should say so and explain the tradeoffs.
+- If the memo recommends affirming or reversing, check whether it addresses remedy (remand, modification, etc.).
+
+### Analytical Gaps
+- Identify unstated assumptions that reasonable minds might not share.
+- Check for logical fallacies: begging the question, false dichotomy, straw man, slippery slope, post hoc reasoning.
+- Flag missing steps in the reasoning chain — where the conclusion does not follow from the stated premises.
+- Check for circular reasoning, especially in standard-of-review application (e.g., concluding the district court was "not clearly erroneous" without examining the evidence).
+
+### Standard of Review Application
+- Verify the memo correctly identifies the standard of review for each issue (de novo, clearly erroneous, abuse of discretion, etc.).
+- Check that the memo consistently applies the identified standard throughout the analysis — not just naming it at the outset and then ignoring it.
+- Flag instances where the analysis applies a stricter or more lenient standard than the one identified.
+
 ## Characteristics of Target Judicial Styles
 
 ### Justice Tufte (ND Supreme Court)
