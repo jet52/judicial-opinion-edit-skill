@@ -58,6 +58,9 @@ judicial-opinion-edit-skill/
     ├── SKILL.md
     ├── TMPDIR-CONFIGURATION.md
     ├── package.json
+    ├── nd_cite_check.py
+    ├── readability_metrics.py
+    ├── splitmarks.py          # vendored PDF bookmark splitter
     └── references/
         ├── nd-appellate-rules.md
         └── style-guide.md
@@ -111,4 +114,5 @@ npm install
 | defusedxml   | Safe XML parsing               | Yes (installed by installer) |
 | pikepdf      | PDF manipulation               | Yes (installed by installer) |
 | splitmarks   | PDF bookmark splitting         | Bundled script (no install)  |
+| textstat     | Readability metrics            | Yes (installed by installer) |
 | docx (npm)   | DOCX document creation         | Yes (installed by installer) |
