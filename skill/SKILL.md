@@ -31,8 +31,8 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 | Node modules | `~/.claude/skills/judicial-opinion-edit/node_modules/` |
 | soffice (LibreOffice) | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
 | ND opinions (markdown) | `$OPINIONS_MD` → `~/cDocs/refs/ndsc_opinions/markdown/` |
-| ND citation checker | `~/.claude/skills/judicial-opinion-edit/skill/nd_cite_check.py` |
-| Readability metrics | `~/.claude/skills/judicial-opinion-edit/skill/readability_metrics.py` |
+| ND citation checker | `~/.claude/skills/judicial-opinion-edit/nd_cite_check.py` |
+| Readability metrics | `~/.claude/skills/judicial-opinion-edit/readability_metrics.py` |
 | ND legal refs | `~/refs/` (opinions, NDCC, constitution, NDAC) |
 
 The opinions directory contains markdown copies of published ND Supreme Court opinions organized as `<year>/<year>ND<number>.md` (e.g., `2022/2022ND210.md` for *Feickert v. Feickert*, 2022 ND 210). Paragraphs are marked `[¶N]`. Use `$OPINIONS_MD` in commands; fall back to the hardcoded path if the variable is unset.
@@ -327,7 +327,7 @@ Pass 3B verifies ALL North Dakota citations — cases, statutes, constitution, c
 >
 > **Step 1: Generate the lookup plan.** Run the citation checker on the opinion file to get structured resolution data:
 > ```bash
-> python3 ~/.claude/skills/judicial-opinion-edit/skill/nd_cite_check.py --file <opinion_path> --refs-dir ~/refs
+> python3 ~/.claude/skills/judicial-opinion-edit/nd_cite_check.py --file <opinion_path> --refs-dir ~/refs
 > ```
 > This outputs a JSON array with one entry per citation found. Each entry includes:
 > - `cite_type`: nd_case, ndcc, ndcc_chapter, nd_const, ndac, nd_court_rule
@@ -518,7 +518,7 @@ In multi-issue documents where each issue has a different standard, verify each 
 
 **CLI mode:** Run the readability metrics script on the document:
 ```bash
-~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/skill/readability_metrics.py --file <document_path>
+~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/readability_metrics.py --file <document_path>
 ```
 Parse the JSON output and incorporate the results into the analysis document (see Readability Metrics section in the output template). Flag any sentences over 40 words, sections with passive voice above 25%, and sections with FK grade above 16.
 
