@@ -358,13 +358,13 @@ Pass 3B verifies ALL North Dakota citations — cases, statutes, constitution, c
 >
 > 5. **Currency check** (statutes, rules, admin code only). If the source text includes effective date or amendment information, flag if the cited version may not be current.
 >
-> 6. **Build the results table.** Every citation gets a clickable link to its official source (from the `url` field in the lookup plan):
+> 6. **Build the results table.** The Source Link column **must** use the full `url` value from the nd_cite_check.py JSON output as a markdown hyperlink — e.g., `[N.D.C.C. § 12.1-32-01](https://ndlegis.gov/cencode/t12c32.pdf#nameddest=12-32-01)`. Never link to just a domain root like `https://ndlegis.gov/`. Every citation's `url` field already points to the specific document; use it verbatim.
 >
 > | ¶ | Citation | Type | Quote Check | Supports? | Source Link | Notes |
 > |---|----------|------|-------------|-----------|-------------|-------|
-> | [¶] | [Citation text] | Opinion / Statute / Const. / Rule / Admin. | Verified / Discrepancy / No quote / Not found | Supports / Partially / Does not support | [Clickable link to official source] | [Explanation] |
+> | [¶] | [Citation text] | Opinion / Statute / Const. / Rule / Admin. | Verified / Discrepancy / No quote / Not found | Supports / Partially / Does not support | [Markdown hyperlink: `[normalized](url)`] | [Explanation] |
 >
-> For locally-verified citations, still include the official URL so readers can independently check the source.
+> For locally-verified citations, still include the official URL from the lookup plan so readers can independently check the source. The URL was already computed — do not substitute or shorten it.
 >
 > 7. **Return** the completed table and a summary: [X] ND citations checked, by type: [opinions/statutes/const/rules/admin]. [Y] quotes verified. [Z] quote discrepancies. [W] not found. [V] citations that may not support the stated proposition.
 
@@ -702,7 +702,7 @@ Produce a document structured as below. The **Substantive Concerns** section var
 
 | ¶ | Citation | Type | Quote Check | Supports? | Source Link | Notes |
 |---|----------|------|-------------|-----------|-------------|-------|
-| [¶] | [Citation text] | Opinion / Statute / Const. / Rule / Admin. | Verified / Discrepancy / No quote / Not found | Supports / Partially / Does not support | [Clickable link to official source] | [Explanation] |
+| [¶] | [Citation text] | Opinion / Statute / Const. / Rule / Admin. | Verified / Discrepancy / No quote / Not found | Supports / Partially / Does not support | [Markdown hyperlink: `[normalized](url)` from lookup plan] | [Explanation] |
 
 **Summary:** [X] ND citations checked, by type: [opinions/statutes/const/rules/admin]. [Y] quotes verified. [Z] quote discrepancies. [W] not found. [V] unsupported propositions.
 
