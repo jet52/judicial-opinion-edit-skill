@@ -95,7 +95,7 @@ cp -a skill/* ~/.claude/skills/judicial-opinion-edit/
 # Set up Python venv
 cd ~/.claude/skills/judicial-opinion-edit
 uv venv .venv
-uv pip install defusedxml pikepdf splitmarks --python .venv/bin/python
+uv pip install defusedxml pikepdf textstat --python .venv/bin/python
 
 # Install Node dependencies
 npm install
@@ -110,5 +110,5 @@ npm install
 | LibreOffice  | Document conversion/validation | Yes                          |
 | defusedxml   | Safe XML parsing               | Yes (installed by installer) |
 | pikepdf      | PDF manipulation               | Yes (installed by installer) |
-| splitmarks   | PDF bookmark splitting         | Yes (installed by installer) |
+| splitmarks   | PDF bookmark splitting         | Bundled script (no install)  |
 | docx (npm)   | DOCX document creation         | Yes (installed by installer) |

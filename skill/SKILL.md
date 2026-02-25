@@ -27,7 +27,7 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 | This skill | `~/.claude/skills/judicial-opinion-edit/` |
 | Docx skill (plugin) | `~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/` |
 | Venv python | `~/.claude/skills/judicial-opinion-edit/.venv/bin/python` |
-| splitmarks | `~/.claude/skills/judicial-opinion-edit/.venv/bin/splitmarks` |
+| splitmarks | `~/.claude/skills/judicial-opinion-edit/splitmarks.py` |
 | Node modules | `~/.claude/skills/judicial-opinion-edit/node_modules/` |
 | soffice (LibreOffice) | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
 | ND opinions (markdown) | `$OPINIONS_MD` → `~/cDocs/refs/ndsc_opinions/markdown/` |
@@ -45,12 +45,13 @@ Use the docx skill path as PYTHONPATH and script root for all docx operations (u
 
 This skill has a persistent virtual environment. **Always use this venv python for all Python operations — never create a new venv in the working directory.**
 
-- **Pre-installed packages:** `defusedxml`, `pikepdf`, `splitmarks`, `textstat`
+- **Pre-installed packages:** `defusedxml`, `pikepdf`, `textstat`
+- **Bundled scripts:** `splitmarks.py` (vendored; no install needed — `pikepdf` satisfies its only dependency)
 
 If the venv does not exist or a package is missing, create/repair it:
 ```bash
 uv venv ~/.claude/skills/judicial-opinion-edit/.venv
-uv pip install defusedxml pikepdf splitmarks textstat --python ~/.claude/skills/judicial-opinion-edit/.venv/bin/python
+uv pip install defusedxml pikepdf textstat --python ~/.claude/skills/judicial-opinion-edit/.venv/bin/python
 ```
 
 ## Temporary Files
@@ -121,10 +122,10 @@ If **no `.docx`** is found, ask the user to provide the document text.
 For large PDF files (typically > 50 MB), use `splitmarks` to split the PDF at its top-level bookmarks into individual documents:
 ```bash
 # Preview what bookmarks exist
-~/.claude/skills/judicial-opinion-edit/.venv/bin/splitmarks packet.pdf --dry-run -vv
+~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/splitmarks.py packet.pdf --dry-run -vv
 
 # Split into individual files in an output directory
-~/.claude/skills/judicial-opinion-edit/.venv/bin/splitmarks packet.pdf -o split_output -v
+~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/splitmarks.py packet.pdf -o split_output -v
 ```
 Pass the resulting file paths to the fact-checking subagent in Pass 4.
 
