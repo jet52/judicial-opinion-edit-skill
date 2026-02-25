@@ -32,6 +32,7 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 | soffice (LibreOffice) | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
 | ND opinions (markdown) | `$OPINIONS_MD` → `~/cDocs/refs/ndsc_opinions/markdown/` |
 | ND citation checker | `~/.claude/skills/judicial-opinion-edit/skill/nd_cite_check.py` |
+| Readability metrics | `~/.claude/skills/judicial-opinion-edit/skill/readability_metrics.py` |
 | ND legal refs | `~/refs/` (opinions, NDCC, constitution, NDAC) |
 
 The opinions directory contains markdown copies of published ND Supreme Court opinions organized as `<year>/<year>ND<number>.md` (e.g., `2022/2022ND210.md` for *Feickert v. Feickert*, 2022 ND 210). Paragraphs are marked `[¶N]`. Use `$OPINIONS_MD` in commands; fall back to the hardcoded path if the variable is unset.
@@ -44,12 +45,12 @@ Use the docx skill path as PYTHONPATH and script root for all docx operations (u
 
 This skill has a persistent virtual environment. **Always use this venv python for all Python operations — never create a new venv in the working directory.**
 
-- **Pre-installed packages:** `defusedxml`, `pikepdf`, `splitmarks`
+- **Pre-installed packages:** `defusedxml`, `pikepdf`, `splitmarks`, `textstat`
 
 If the venv does not exist or a package is missing, create/repair it:
 ```bash
 uv venv ~/.claude/skills/judicial-opinion-edit/.venv
-uv pip install defusedxml pikepdf splitmarks --python ~/.claude/skills/judicial-opinion-edit/.venv/bin/python
+uv pip install defusedxml pikepdf splitmarks textstat --python ~/.claude/skills/judicial-opinion-edit/.venv/bin/python
 ```
 
 ## Temporary Files
@@ -432,6 +433,16 @@ For memos: Does the memo correctly identify the standard *and* apply it consiste
 
 In multi-issue documents where each issue has a different standard, verify each standard is applied to the correct issue.
 
+#### Readability Metrics (all doc types)
+
+**CLI mode:** Run the readability metrics script on the document:
+```bash
+~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/skill/readability_metrics.py --file <document_path>
+```
+Parse the JSON output and incorporate the results into the analysis document (see Readability Metrics section in the output template). Flag any sentences over 40 words, sections with passive voice above 25%, and sections with FK grade above 16.
+
+**Web mode:** Skip the script (no Bash available). If feasible, estimate sentence length and passive voice inline for the longest/densest sections. Otherwise, note: "Readability metrics unavailable in web mode."
+
 #### If DOC_TYPE is `opinion` (default)
 
 - Flag potential dicta (statements unnecessary to the holding)
@@ -506,6 +517,19 @@ Produce a document structured as below. The **Substantive Concerns** section var
 | [¶] | [Issue] | [Standard] | [Problematic phrase] | [Why this is inconsistent with the standard] |
 
 [Or: "Standards of review applied consistently throughout."]
+
+## Readability Metrics
+
+**Overall:** Flesch-Kincaid Grade [X] · Avg sentence length [X] words · Passive voice [X]% · Nominalization density [X]/100 words
+
+| Section | ¶¶ | FK Grade | Avg Sentence | Longest Sentence | Passive % | Nominalizations |
+|---------|-----|----------|-------------|-----------------|-----------|-----------------|
+| [section] | [range] | [grade] | [avg] | [max] | [pct] | [density] |
+
+**Flags:**
+- [List of flagged items with ¶ references]
+
+[Or: "All sections within normal ranges."]
 ```
 
 **If DOC_TYPE is `opinion`:**
