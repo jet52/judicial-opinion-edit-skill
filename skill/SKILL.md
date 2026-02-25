@@ -31,8 +31,12 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 | Node modules | `~/.claude/skills/judicial-opinion-edit/node_modules/` |
 | soffice (LibreOffice) | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
 | ND opinions (markdown) | `$OPINIONS_MD` → `~/cDocs/refs/ndsc_opinions/markdown/` |
+| ND citation checker | `~/.claude/skills/judicial-opinion-edit/skill/nd_cite_check.py` |
+| ND legal refs | `~/refs/` (opinions, NDCC, constitution, NDAC) |
 
 The opinions directory contains markdown copies of published ND Supreme Court opinions organized as `<year>/<year>ND<number>.md` (e.g., `2022/2022ND210.md` for *Feickert v. Feickert*, 2022 ND 210). Paragraphs are marked `[¶N]`. Use `$OPINIONS_MD` in commands; fall back to the hardcoded path if the variable is unset.
+
+The `~/refs/` directory contains a local repository of ND legal materials in markdown format: opinions (`opin/markdown/`), NDCC (`ndcc/`), ND Constitution (`cnst/`), and NDAC (`ndac/`). The citation checker resolves these paths automatically.
 
 Use the docx skill path as PYTHONPATH and script root for all docx operations (unpack.py, pack.py, document.py, ooxml.md, etc.).
 
@@ -300,53 +304,71 @@ Perform these checks in main context as part of Passes 2/5 work:
 
 #### Part B: Substantive Citation Verification (Delegated to Subagent)
 
-**Preparation (in main context):** After reading the opinion, extract a numbered list of every citation to a North Dakota Supreme Court case. For each, record:
+Pass 3B verifies ALL North Dakota citations — cases, statutes, constitution, court rules, and administrative code — not just case citations.
+
+**Preparation (in main context):** After reading the opinion, extract a numbered list of every ND citation. For each, record:
 - The paragraph (¶) where the citation appears
-- The full citation (case name, year ND number, pinpoint ¶)
+- The full citation text
 - The proposition the citation is used to support (the sentence or clause preceding the citation)
-- Whether the opinion quotes the case (and if so, the exact quoted text)
+- Whether the opinion quotes the source (and if so, the exact quoted text)
 - The signal used (none, *See*, *see also*, *cf.*, *but see*, *accord*, etc.)
 
 **Delegation:** Launch a Task subagent (subagent_type: `general-purpose`) with the extracted citation list and the following instructions:
 
-> **ND Opinion Citation Verification**
+> **ND Citation Verification**
 >
-> You have a list of ND Supreme Court citations from a draft opinion. For each citation, verify it against the local markdown opinion files.
+> You have a list of ND citations from a draft opinion. Verify each against local reference files and official online sources.
 >
-> **File location:** `$OPINIONS_MD` (fallback: `~/cDocs/refs/ndsc_opinions/markdown/`). Files are organized as `<year>/<year>ND<number>.md`. For example, `2022 ND 210` → `$OPINIONS_MD/2022/2022ND210.md`. Paragraphs are marked `[¶N]` in the markdown.
+> **Step 1: Generate the lookup plan.** Run the citation checker on the opinion file to get structured resolution data:
+> ```bash
+> python3 ~/.claude/skills/judicial-opinion-edit/skill/nd_cite_check.py --file <opinion_path> --refs-dir ~/refs
+> ```
+> This outputs a JSON array with one entry per citation found. Each entry includes:
+> - `cite_type`: nd_case, ndcc, ndcc_chapter, nd_const, ndac, nd_court_rule
+> - `local_path` / `local_exists`: path in `~/refs/` and whether it exists
+> - `url`: official source URL (always populated)
+> - `search_hint`: text to search for within the local file
 >
-> **For each citation:**
+> **Step 2: Verify each citation.** For each entry from the lookup plan:
 >
-> 1. **Locate the file.** Map the citation (e.g., `2014 ND 192`) to its file path (e.g., `$OPINIONS_MD/2014/2014ND192.md`). If the file does not exist, mark the citation as "File not found" and move on.
+> 1. **Retrieve source text.**
+>    - If `local_exists` is `true`: use the Read tool on `local_path`. For NDCC sections, search for the `search_hint` within the chapter file. For ND opinions, locate the pinpoint paragraph (`[¶N]`).
+>    - If `local_exists` is `false`: use WebFetch on the `url` to retrieve the source text. For PDF URLs (ndlegis.gov), note that WebFetch may not extract PDF content — mark as "URL only" and verify what you can.
 >
-> 2. **Read the cited paragraph.** Use the Read tool to read the file, then locate the pinpoint paragraph (`[¶N]`). If no pinpoint is given, read the full opinion. Read enough surrounding context (the cited ¶ plus 1–2 paragraphs before and after) to understand the point.
->
-> 3. **If the opinion quotes the cited case:**
->    - Compare the quoted text against the source paragraph **character by character**.
+> 2. **If the opinion quotes the cited source:**
+>    - Compare the quoted text against the source **character by character**.
 >    - Flag any discrepancies (missing words, changed words, transpositions).
 >    - Identify any bracketed alterations (`[word]`, `[W]ord` for capitalization changes, ellipses `...` or `. . .` for omissions).
->    - For each alteration, note whether the opinion includes an appropriate parenthetical (e.g., "(alteration in original)", "(cleaned up)", "(emphasis added)", "(omission)", "(quoting [Source])"). Under Bluebook Rule 5.2, alterations to quoted material must be indicated, and the parenthetical should appear after the citation.
+>    - For each alteration, note whether the opinion includes an appropriate parenthetical (e.g., "(alteration in original)", "(cleaned up)", "(emphasis added)", "(omission)", "(quoting [Source])"). Under Bluebook Rule 5.2, alterations to quoted material must be indicated.
 >    - Report the result as: **Quote verified** (exact match), **Quote verified with noted alterations** (brackets/ellipses present and properly parentheticized), or **Quote discrepancy** (unexplained differences).
 >
-> 4. **Substantive support check.** Read the cited paragraph in context and assess whether it supports the proposition for which it is cited. Consider:
->    - Does the cited paragraph actually state or hold the legal principle attributed to it?
+> 3. **Existence check.** Does the cited provision/opinion actually exist? For statutes and rules, confirm the section number is valid.
+>
+> 4. **Substantive support check.** Read the cited material in context and assess whether it supports the proposition for which it is cited. Consider:
+>    - Does the source actually state or hold the legal principle attributed to it?
 >    - Is the signal appropriate? (No signal = direct support; *See* = clearly supports; *see also* = additional support; *cf.* = analogous; *but see* = contrary)
 >    - Is the proposition a fair characterization, or does it overstate/understate/distort the source?
 >    - Report: **Supports** (the cite supports the proposition), **Partially supports** (some nuance lost or overstated), or **Does not support** (the cite does not stand for the stated proposition).
 >
-> 5. **Build the results table:**
+> 5. **Currency check** (statutes, rules, admin code only). If the source text includes effective date or amendment information, flag if the cited version may not be current.
 >
-> | ¶ | Citation | Quote Check | Alterations | Parenthetical OK? | Supports Proposition? | Notes |
-> |---|----------|-------------|-------------|--------------------|-----------------------|-------|
-> | [¶] | [Case, cite] | Verified / Verified w/ alterations / Discrepancy / No quote / File not found | [List any brackets, ellipses, emphasis changes] | Yes / No / N/A | Supports / Partially / Does not support | [Explanation] |
+> 6. **Build the results table.** Every citation gets a clickable link to its official source (from the `url` field in the lookup plan):
 >
-> 6. **Return** the completed table and a summary: [X] ND citations checked. [Y] quotes verified. [Z] quote discrepancies. [W] files not found. [V] citations that may not support the stated proposition.
+> | ¶ | Citation | Type | Quote Check | Supports? | Source Link | Notes |
+> |---|----------|------|-------------|-----------|-------------|-------|
+> | [¶] | [Citation text] | Opinion / Statute / Const. / Rule / Admin. | Verified / Discrepancy / No quote / Not found | Supports / Partially / Does not support | [Clickable link to official source] | [Explanation] |
+>
+> For locally-verified citations, still include the official URL so readers can independently check the source.
+>
+> 7. **Return** the completed table and a summary: [X] ND citations checked, by type: [opinions/statutes/const/rules/admin]. [Y] quotes verified. [Z] quote discrepancies. [W] not found. [V] citations that may not support the stated proposition.
 
-**Web mode:** No local ND opinion corpus is available. Fallback verification:
-1. For each ND citation, use web search to locate the opinion on ndcourts.gov or Google Scholar.
-2. If found, verify quotes and substantive support as described above.
-3. If not found, mark as "Not verified — web search unsuccessful."
-4. Note in the Citation Verification section: "Citations verified via web search. Local opinion corpus unavailable. Results may be incomplete."
+**Web mode:** Skip local resolution — no `~/refs/` directory is available.
+1. Run `nd_cite_check.py` with `--refs-dir /dev/null` (or skip the script entirely and use the URL patterns below).
+2. For each ND citation, use WebFetch on the URL from the lookup plan.
+3. For ND case citations, use web search to locate the opinion on ndcourts.gov or Google Scholar.
+4. Verify quotes and substantive support as described above.
+5. If a source cannot be retrieved, mark as "Not verified — source unavailable."
+6. Note in the Citation Verification section: "Citations verified via URL lookup against official sources. Local reference files unavailable."
 
 ### Pass 4: Fact Check (Delegated to Subagent)
 
@@ -477,11 +499,11 @@ Produce a document structured as below. The **Substantive Concerns** section var
 ```
 ## Citation Verification
 
-| ¶ | Citation | Quote Check | Alterations | Parenthetical OK? | Supports Proposition? | Notes |
-|---|----------|-------------|-------------|--------------------|-----------------------|-------|
-| [¶] | [Case, cite] | Verified / Verified w/ alterations / Discrepancy / No quote / File not found | [Brackets, ellipses, emphasis changes] | Yes / No / N/A | Supports / Partially / Does not support | [Explanation] |
+| ¶ | Citation | Type | Quote Check | Supports? | Source Link | Notes |
+|---|----------|------|-------------|-----------|-------------|-------|
+| [¶] | [Citation text] | Opinion / Statute / Const. / Rule / Admin. | Verified / Discrepancy / No quote / Not found | Supports / Partially / Does not support | [Clickable link to official source] | [Explanation] |
 
-**Summary:** [X] ND citations checked. [Y] quotes verified. [Z] quote discrepancies. [W] files not found. [V] unsupported propositions.
+**Summary:** [X] ND citations checked, by type: [opinions/statutes/const/rules/admin]. [Y] quotes verified. [Z] quote discrepancies. [W] not found. [V] unsupported propositions.
 
 ## Citation Format Issues
 [Citation-format corrections with explanations]
