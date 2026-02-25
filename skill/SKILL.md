@@ -164,7 +164,7 @@ Store the user's choice and adjust the workflow accordingly:
 - If **tracked-changes only**: Complete all editing passes, produce the .docx in Step 9, skip Step 10 (analysis document)
 - If **analysis only**: Complete all editing passes and collect findings, produce only the analysis document in Step 10, skip Step 9 (.docx creation)
 
-**Note:** Even when producing analysis only, you must still perform all editing passes (1–5) to identify issues and generate findings for the analysis. You simply skip the final .docx assembly step.
+**Note:** Even when producing analysis only, you must still perform all editing passes (1–7) to identify issues and generate findings for the analysis. You simply skip the final .docx assembly step.
 
 ### Steps 1–10: Core Workflow
 1. Read `references/style-guide.md`
@@ -173,8 +173,10 @@ Store the user's choice and adjust the workflow accordingly:
 4. **Delegate Pass 1** (jurisdictional check) to a subagent — see Pass 1 below
 5. **Delegate Pass 3** (citation verification) to a subagent — see Pass 3 below
 6. **Delegate Pass 4** (fact-checking) to a subagent if PDF materials were identified in Step 0 — see Pass 4 below
+6a. **Delegate Pass 6** (brief matching) to a subagent if briefs were identified in Step 0 — see Pass 6 below
+6b. **Delegate Pass 7** (dissent/concurrence cross-check) to a subagent if a dissent or concurrence was identified in Step 0 and `DOC_TYPE == opinion` — see Pass 7 below
 7. **Pass 2 routing:** If the opinion has **more than 30 paragraphs**, delegate Pass 2 to a subagent — see "Delegated Pass 2" below. Otherwise, perform Pass 2 in main context. **Pass 5** (analytical rigor) is always performed in main context. Pass 2 (when not delegated) and Pass 5 can proceed in parallel with subagents.
-8. Collect subagent results from Passes 1, 3, 4, and (if delegated) Pass 2 — **use the `TaskOutput` tool**, not Bash `tail`
+8. Collect subagent results from Passes 1, 3, 4, 6, 7, and (if delegated) Pass 2 — **use the `TaskOutput` tool**, not Bash `tail`
 9. **If user requested tracked-changes .docx** (both or tracked-changes only): Produce tracked-changes .docx output using the docx skill's editing workflow
 10. **If user requested analysis document** (both or analysis only): Produce the companion analysis document (incorporating all subagent results). If also producing .docx, create both outputs in the same response
 
@@ -190,11 +192,13 @@ Store the user's choice and adjust the workflow accordingly:
 5. Perform Pass 2 inline (regardless of length).
 6. Perform Pass 3A (format) inline. Perform Pass 3B (verification) inline with web search fallback.
 7. Perform Pass 4 inline if the user uploaded source PDFs. Read them directly.
-8. Perform Pass 5 inline.
-9. Skip .docx assembly.
-10. Produce the analysis document as markdown in the conversation.
+8. Perform Pass 6 (brief matching) inline if the user uploaded briefs.
+9. Perform Pass 7 (dissent cross-check) inline if the user uploaded a dissent/concurrence and `DOC_TYPE == opinion`.
+10. Perform Pass 5 inline.
+11. Skip .docx assembly.
+12. Produce the analysis document as markdown in the conversation.
 
-**Context limits:** Without subagents, very long documents (50+ paragraphs) may approach context limits. If this occurs, prioritize: Pass 2 → Pass 5 → Pass 3A → Pass 1 → Pass 3B → Pass 4. Inform the user which passes were completed.
+**Context limits:** Without subagents, very long documents (50+ paragraphs) may approach context limits. If this occurs, prioritize: Pass 2 → Pass 5 → Pass 3A → Pass 1 → Pass 3B → Pass 4 → Pass 6 → Pass 7. Inform the user which passes were completed.
 
 ## Editing Instructions
 
@@ -400,6 +404,82 @@ Do **not** include: legal standards and rules (checked in Passes 1 and 3), the c
 
 **Web mode:** If the user uploaded PDF source materials, read them directly (no pdftotext needed). Perform fact-checking inline. For large documents, focus on the extracted claims rather than reading entire files. If no source materials were uploaded, note this limitation.
 
+### Pass 6: Brief Matching (Delegated to Subagent)
+
+When briefs are available (identified in Step 0), check whether the opinion or memo addresses every argument raised by the parties. This pass applies to both `opinion` and `memo` document types.
+
+**Do not** read the briefs into the main context. Delegate to a subagent to keep PDF content out of the main context window.
+
+**Delegation:** Launch a Task subagent (subagent_type: `general-purpose`) with the path to the draft document and the brief file(s):
+
+> **Brief-Matching — Pass 6**
+>
+> Read the draft document at `[path]` and the party briefs at `[brief paths]`.
+>
+> For each brief, extract text locally: `pdftotext <file>.pdf <file>.txt`
+>
+> **Step 1:** Extract every distinct argument or contention from each party's brief. For each argument, record:
+> - The party (Appellant/Appellee/Petitioner/Respondent)
+> - A one-sentence summary of the argument
+> - The brief and page range where the argument appears (e.g., "Appellant's Brief, pp. 12–15")
+>
+> **Step 2:** For each argument, search the draft document for responsive discussion. An argument is "addressed" if the document engages with the substance of the contention — not merely mentioning the topic. Classify as:
+> - **Yes** — the document directly addresses the argument
+> - **Partial** — the document touches on the topic but does not fully engage (e.g., acknowledges without analysis)
+> - **No** — no responsive discussion found
+>
+> **Step 3:** Build the results table:
+>
+> | ¶ | Argument | Party | Brief Source | Addressed | Notes |
+> |---|----------|-------|-------------|-----------|-------|
+> | [¶ ref or "—"] | [Argument summary] | [Party] | [Brief, pp. X–Y] | Yes / Partial / No | [Where addressed, or what's missing] |
+>
+> The ¶ column references where in the draft the argument is addressed (or "—" if not addressed).
+>
+> **Step 4:** Return the table and a summary: [X] arguments identified across [N] briefs. [Y] directly addressed. [Z] partially addressed. [W] not addressed.
+
+**No briefs available:** If no briefs were provided in Step 0, skip this pass entirely. Note in the analysis document: "No briefs provided — brief matching skipped."
+
+**Web mode:** If the user uploaded briefs, perform inline — read the briefs directly and follow the same extraction and matching process. If no briefs were uploaded, note the limitation.
+
+### Pass 7: Dissent/Concurrence Cross-Check (Delegated to Subagent)
+
+When a dissent or concurrence is provided alongside the majority opinion, cross-check for fair characterization and responsiveness. This pass applies **only** when `DOC_TYPE == opinion` and a dissent or concurrence file was identified in Step 0.
+
+**Do not** read the dissent/concurrence into the main context. Delegate to a subagent to keep the separate document out of the main context window.
+
+**Delegation:** Launch a Task subagent (subagent_type: `general-purpose`) with the paths to both documents:
+
+> **Dissent/Concurrence Cross-Check — Pass 7**
+>
+> Read the majority opinion at `[majority path]` and the dissent/concurrence at `[dissent path]`.
+>
+> **Step 1: Catalog dissent arguments.** For each distinct argument or criticism in the dissent/concurrence, record:
+> - The paragraph(s) where it appears
+> - A one-sentence summary
+> - Whether it criticizes the majority's reasoning, result, or both
+>
+> **Step 2: Check majority responsiveness.** For each dissent argument:
+> - Does the majority acknowledge the criticism? (Yes / No)
+> - Does the majority respond substantively? (Yes / Partial / No)
+> - Is the majority's characterization of the dissent's position fair and accurate? (Yes / No / Partial — flag straw-man characterizations)
+>
+> **Step 3: Check dissent fairness.** For each major argument in the majority:
+> - Does the dissent fairly characterize the majority's position? (Yes / No / Partial — flag straw-man characterizations)
+> - Does the dissent misquote or misrepresent the majority? Flag specific passages.
+>
+> **Step 4: Build the results table:**
+>
+> | ¶ Majority | ¶ Dissent | Argument | Fair Characterization? | Addressed? | Notes |
+> |-----------|-----------|----------|----------------------|------------|-------|
+> | [¶] | [¶] | [Criticism or argument] | Yes / No / Partial | Yes / No / Partial | [Explanation] |
+>
+> **Step 5:** Return the table and a summary: [X] dissent arguments reviewed. [Y] fairly characterized by majority. [Z] potential straw-manning identified. [W] unaddressed criticisms. [V] instances where dissent mischaracterizes majority.
+
+**No dissent/concurrence available:** If no dissent or concurrence was identified in Step 0, or `DOC_TYPE != opinion`, skip this pass entirely.
+
+**Web mode:** If the user uploaded a dissent/concurrence alongside the majority, perform inline — read both documents directly and follow the same cross-check process. If no dissent was uploaded, note the limitation.
+
 ### Pass 5: Analytical Rigor
 
 Perform the following checks on **all documents** (both opinions and memos), then the DOC_TYPE-specific checks below. Full details for both document types are in `references/style-guide.md`.
@@ -452,6 +532,7 @@ Parse the JSON output and incorporate the results into the analysis document (se
 - Read from the losing party's perspective: what would a critic seize on?
 - Flag holdings broader than necessary
 - Flag vague standards lacking guidance for future application
+- **Draft case highlight:** Generate a 50–200 word case summary for the analysis document. Extract: case name and citation (from the caption/header), nature of the dispute (one sentence), disposition (affirmed/reversed/remanded/modified with brief outcome), and 1–3 core holdings. This is a synthesis task — perform it in main context, not delegated.
 
 #### If DOC_TYPE is `memo`
 
@@ -476,8 +557,30 @@ Use the docx skill to produce a .docx with:
 ### Analysis document (if requested)
 Produce a document structured as below. The **Substantive Concerns** section varies by `DOC_TYPE`.
 
+**If DOC_TYPE is `opinion`**, place the Case Highlight first:
+
 ```
 –Begin Analysis–
+
+## Case Highlight
+
+**[Case Name], [Citation]**
+**Nature:** [One-sentence description of the dispute type]
+**Disposition:** [Affirmed/Reversed/Remanded/Modified — with brief outcome]
+**Holdings:**
+- [Core holding 1]
+- [Core holding 2]
+- [Core holding 3, if applicable]
+
+[50–200 word summary synthesizing the case's significance, essential facts, and primary legal principles.]
+```
+
+**If DOC_TYPE is `memo`**, begin directly with Jurisdictional Notes.
+
+**Both document types continue with:**
+
+```
+–Begin Analysis– [if memo, or continuation after Case Highlight if opinion]
 
 ## Jurisdictional Notes
 [Issues with timeliness of appeal, procedural posture, or standard of review]
@@ -493,9 +596,19 @@ Produce a document structured as below. The **Substantive Concerns** section var
 | [¶ ref] | [Factual assertion from document] | [Record doc, brief, or transcript with pinpoint cite] | Verified / Unverified / Discrepancy | [Explanation if discrepancy or unverified] |
 
 **Summary:** [X] facts checked. [Y] verified. [Z] discrepancies. [W] unverified.
+
+## Brief Matching
+
+| ¶ | Argument | Party | Brief Source | Addressed | Notes |
+|---|----------|-------|-------------|-----------|-------|
+| [¶ ref] | [Argument/contention] | [Appellant/Appellee] | [Brief, pp. X–Y] | Yes / Partial / No | [Explanation] |
+
+**Summary:** [X] arguments identified. [Y] directly addressed. [Z] partially addressed. [W] not addressed.
+
+[Or: "No briefs provided — brief matching skipped."]
 ```
 
-**Both document types include these sections after Fact Check:**
+**Both document types include these sections after Brief Matching:**
 
 ```
 ## Internal Consistency
@@ -548,6 +661,16 @@ Produce a document structured as below. The **Substantive Concerns** section var
 
 ### Logical Issues
 [Logical fallacies or unstated assumptions]
+
+### Dissent/Concurrence Cross-Check
+
+| ¶ Majority | ¶ Dissent | Argument | Fair Characterization? | Addressed? | Notes |
+|-----------|-----------|----------|----------------------|------------|-------|
+| [¶] | [¶] | [Criticism or argument] | Yes / No / Partial | Yes / No / Partial | [Explanation] |
+
+**Summary:** [X] dissent arguments reviewed. [Y] fairly characterized. [Z] potential straw-manning. [W] unaddressed criticisms.
+
+[Or: "No dissent/concurrence provided."]
 ```
 
 **If DOC_TYPE is `memo`:**
