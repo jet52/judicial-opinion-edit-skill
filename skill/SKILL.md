@@ -401,7 +401,36 @@ Do **not** include: legal standards and rules (checked in Passes 1 and 3), the c
 
 ### Pass 5: Analytical Rigor
 
-Checks vary by `DOC_TYPE`. Full details for both document types are in `references/style-guide.md`.
+Perform the following checks on **all documents** (both opinions and memos), then the DOC_TYPE-specific checks below. Full details for both document types are in `references/style-guide.md`.
+
+#### Internal Consistency Check (all doc types)
+
+Read the entire document and build a mental index of: party names (including aliases and roles), dates, monetary amounts, numerical counts, procedural events, and terminology choices. Compare every reference to each entity, date, and event across the document. Flag any discrepancy with paragraph references for both the first usage and the inconsistent usage.
+
+Check for:
+- **Name/spelling inconsistencies** (e.g., "Johnson" vs "Johnsen", "Meier" vs "Meyer")
+- **Date inconsistencies** (same event assigned different dates in different paragraphs)
+- **Terminology drift** (switching between "defendant"/"respondent", "trial court"/"district court" without reason)
+- **Factual contradictions** (facts section says X, analysis section says Y)
+- **Numerical inconsistencies** (amounts, counts, timelines that don't add up)
+- **Caption/party inconsistencies** (parties named differently in caption vs body)
+
+Distinguish intentional variation from apparent errors. Referring to "Smith" in the facts and "the appellant" in the analysis is fine; "Smith" becoming "Smyth" is a flag.
+
+#### Standard of Review Consistency Check (all doc types)
+
+Identify every standard of review stated in the document and which issue(s) each applies to. For each analytical section, identify the language of deference (or lack thereof). Flag each instance where the analysis language is inconsistent with the stated standard, citing the paragraph.
+
+Standard-specific red flags:
+- **De novo:** Acceptable language includes "we conclude," "we hold," independent analysis. No deference language needed.
+- **Clear error:** Requires deference. Red flags: reweighing evidence, making independent credibility determinations, "we find" (implies independent factfinding), "we would have decided differently."
+- **Abuse of discretion:** Requires deference. Red flags: substituting the court's judgment, applying a legal standard de novo when the question is discretionary.
+- **Plain error:** Must show (1) error, (2) clear/obvious, (3) affecting substantial rights, (4) seriously affecting fairness/integrity/public reputation. Flag if any prong is skipped.
+
+For opinions: Does the court *apply* the standard it *stated*?
+For memos: Does the memo correctly identify the standard *and* apply it consistently in the recommendation?
+
+In multi-issue documents where each issue has a different standard, verify each standard is applied to the correct issue.
 
 #### If DOC_TYPE is `opinion` (default)
 
@@ -453,6 +482,30 @@ Produce a document structured as below. The **Substantive Concerns** section var
 | [¶ ref] | [Factual assertion from document] | [Record doc, brief, or transcript with pinpoint cite] | Verified / Unverified / Discrepancy | [Explanation if discrepancy or unverified] |
 
 **Summary:** [X] facts checked. [Y] verified. [Z] discrepancies. [W] unverified.
+```
+
+**Both document types include these sections after Fact Check:**
+
+```
+## Internal Consistency
+
+| ¶ | Item | First Usage | Inconsistent Usage | Notes |
+|---|------|-------------|-------------------|-------|
+| [¶ refs] | [Name/date/term] | [First form, ¶ ref] | [Different form, ¶ ref] | [Explanation] |
+
+[Or: "No internal inconsistencies detected."]
+
+## Standard of Review Consistency
+
+**Standards identified:**
+- Issue 1: [standard] (¶ [ref])
+- Issue 2: [standard] (¶ [ref])
+
+| ¶ | Issue | Stated Standard | Language Used | Concern |
+|---|-------|----------------|---------------|---------|
+| [¶] | [Issue] | [Standard] | [Problematic phrase] | [Why this is inconsistent with the standard] |
+
+[Or: "Standards of review applied consistently throughout."]
 ```
 
 **If DOC_TYPE is `opinion`:**
