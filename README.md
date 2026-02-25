@@ -14,7 +14,7 @@ Appellate judicial opinion editor and proofreader. Produces a Word document (.do
 
 ### Claude Desktop
 
-1. Download `judicial-opinion-edit-skill.zip`
+1. Download [`judicial-opinion-edit-skill.zip`](https://github.com/jet52/judicial-opinion-edit-skill/releases/latest)
 2. Open Settings > Features > Claude's Computer Use > Skills directory
 3. Set the skills directory to a folder of your choice (e.g., `~/.claude/skills/`)
 4. Copy `skill/` contents into `<skills-dir>/judicial-opinion-edit/`
@@ -22,7 +22,7 @@ Appellate judicial opinion editor and proofreader. Produces a Word document (.do
 
 ### Claude Projects (web)
 
-1. Download `judicial-opinion-edit-skill.zip` from GitHub
+1. Download [`judicial-opinion-edit-skill.zip`](https://github.com/jet52/judicial-opinion-edit-skill/releases/latest) from GitHub
 2. Open your Claude Project → Project Knowledge
 3. Upload `judicial-opinion-edit-skill.zip`
 4. Paste opinion text or upload .docx/.pdf files in conversation
@@ -67,7 +67,7 @@ judicial-opinion-edit-skill/
 
 **Option A: From .zip**
 
-1. Download and extract `judicial-opinion-edit-skill.zip`
+1. Download and extract [`judicial-opinion-edit-skill.zip`](https://github.com/jet52/judicial-opinion-edit-skill/releases/latest)
 2. Run the installer:
    ```bash
    bash install.sh
