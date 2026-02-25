@@ -21,7 +21,7 @@ try:
     import textstat
 except ImportError:
     print("Error: textstat not installed. Run: uv pip install textstat "
-          "--python ~/.claude/skills/judicial-opinion-edit/.venv/bin/python",
+          "--python ~/.claude/skills/jetredline/.venv/bin/python",
           file=sys.stderr)
     sys.exit(1)
 

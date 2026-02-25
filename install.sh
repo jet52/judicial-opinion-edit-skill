@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKILL_NAME="judicial-opinion-edit"
+SKILL_NAME="jetredline"
 INSTALL_DIR="$HOME/.claude/skills/$SKILL_NAME"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

@@ -1,6 +1,6 @@
-# Judicial Opinion Edit Skill
+# JetRedline
 
-Appellate judicial opinion editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court).
+Appellate judicial opinion and bench memo editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court).
 
 ## Prerequisites
 
@@ -14,17 +14,17 @@ Appellate judicial opinion editor and proofreader. Produces a Word document (.do
 
 ### Claude Desktop
 
-1. Download [`judicial-opinion-edit-skill.zip`](https://github.com/jet52/judicial-opinion-edit-skill/releases/latest)
+1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
 2. Open Settings > Features > Claude's Computer Use > Skills directory
 3. Set the skills directory to a folder of your choice (e.g., `~/.claude/skills/`)
-4. Copy `skill/` contents into `<skills-dir>/judicial-opinion-edit/`
+4. Copy `skill/` contents into `<skills-dir>/jetredline/`
 5. Set up the Python venv and Node dependencies manually (see Option C above)
 
 ### Claude Projects (web)
 
-1. Download [`judicial-opinion-edit-skill.zip`](https://github.com/jet52/judicial-opinion-edit-skill/releases/latest) from GitHub
+1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest) from GitHub
 2. Open your Claude Project → Project Knowledge
-3. Upload `judicial-opinion-edit-skill.zip`
+3. Upload `jetredline-skill.zip`
 4. Paste opinion text or upload .docx/.pdf files in conversation
 5. Use the same trigger phrases ("edit this opinion", "edit this bench memo", etc.)
 
@@ -42,6 +42,8 @@ Trigger phrases:
 - "Proofread this opinion"
 - "Review this draft opinion"
 - "Redline this opinion"
+- "Redline this draft"
+- "Redline this memo"
 - "Edit this draft order"
 
 Provide a `.docx` draft opinion in the working directory. Optionally include `.pdf` briefs or record materials for fact-checking.
@@ -49,7 +51,7 @@ Provide a `.docx` draft opinion in the working directory. Optionally include `.p
 ## File Structure
 
 ```
-judicial-opinion-edit-skill/
+jetredline/
 ├── README.md
 ├── Makefile
 ├── install.sh
@@ -70,21 +72,21 @@ judicial-opinion-edit-skill/
 
 **Option A: From .zip**
 
-1. Download and extract [`judicial-opinion-edit-skill.zip`](https://github.com/jet52/judicial-opinion-edit-skill/releases/latest)
+1. Download and extract [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
 2. Run the installer:
    ```bash
    bash install.sh
    ```
    The installer will:
-   - Copy skill files to `~/.claude/skills/judicial-opinion-edit/`
+   - Copy skill files to `~/.claude/skills/jetredline/`
    - Create a Python virtual environment with required packages
    - Run `npm install` for the `docx` Node.js package
 
 **Option B: From source**
 
 ```bash
-git clone https://github.com/jet52/judicial-opinion-edit-skill.git
-cd judicial-opinion-edit-skill
+git clone https://github.com/jet52/jetredline.git
+cd jetredline
 make install
 ```
 
@@ -92,11 +94,11 @@ make install
 
 ```bash
 # Copy skill files
-mkdir -p ~/.claude/skills/judicial-opinion-edit
-cp -a skill/* ~/.claude/skills/judicial-opinion-edit/
+mkdir -p ~/.claude/skills/jetredline
+cp -a skill/* ~/.claude/skills/jetredline/
 
 # Set up Python venv
-cd ~/.claude/skills/judicial-opinion-edit
+cd ~/.claude/skills/jetredline
 uv venv .venv
 uv pip install defusedxml pikepdf textstat --python .venv/bin/python
 

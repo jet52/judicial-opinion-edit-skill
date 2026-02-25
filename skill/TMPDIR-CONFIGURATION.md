@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-The judicial-opinion-edit skill was creating temporary files in system-wide locations (`/tmp` or `~/tmp`), which caused:
+The JetRedline skill was creating temporary files in system-wide locations (`/tmp` or `~/tmp`), which caused:
 
 1. **Permission prompts**: Numerous requests for access to tmp/ during skill execution
 2. **Collision risk**: If the skill ran on two different cases simultaneously, temp files could collide

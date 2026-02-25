@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Stamp version from git tag
-        run: sed -i "s/judicial-opinion-edit v[^ ]*/judicial-opinion-edit ${GITHUB_REF_NAME}/" skill/SKILL.md
+        run: sed -i "s/JetRedline v[^ ]*/JetRedline ${GITHUB_REF_NAME}/" skill/SKILL.md
       - run: make package
       - uses: softprops/action-gh-release@v2
         with:
-          files: judicial-opinion-edit-skill.zip
+          files: jetredline-skill.zip
           generate_release_notes: true

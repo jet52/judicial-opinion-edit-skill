@@ -1,4 +1,4 @@
-SKILL_NAME := judicial-opinion-edit
+SKILL_NAME := jetredline
 ZIP_NAME := $(SKILL_NAME)-skill.zip
 
 .PHONY: package clean install test

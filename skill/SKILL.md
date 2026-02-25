@@ -1,9 +1,9 @@
 ---
-name: judicial-opinion-edit
-description: "Appellate judicial opinion and bench memo editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Use when the user provides a draft judicial opinion, court order, bench memo, or legal memorandum for editing, proofreading, or style review. Triggers: edit opinion, proofread opinion, review draft opinion, judicial writing review, court opinion edit, redline opinion, edit draft order, appellate opinion editing, edit memo, edit bench memo, proofread memo, review bench memo. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court), Guberman's Point Taken, and Justices Gorsuch, Kagan, and Thomas."
+name: jetredline
+description: "Appellate judicial opinion and bench memo editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Use when the user provides a draft judicial opinion, court order, bench memo, or legal memorandum for editing, proofreading, or style review. Triggers: edit opinion, proofread opinion, review draft opinion, judicial writing review, court opinion edit, redline opinion, edit draft order, appellate opinion editing, edit memo, edit bench memo, proofread memo, review bench memo, jetredline, redline this draft, redline this opinion, redline this memo, redline this order. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court), Guberman's Point Taken, and Justices Gorsuch, Kagan, and Thomas."
 ---
 
-# Judicial Opinion Editor
+# JetRedline
 
 Edit draft judicial opinions and bench memos to improve grammar, clarity, conciseness, professional tone, citation accuracy, and analytical rigor. Produce a Word document with tracked changes and a companion analysis document.
 
@@ -24,15 +24,15 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 
 | Resource | Path |
 |----------|------|
-| This skill | `~/.claude/skills/judicial-opinion-edit/` |
+| This skill | `~/.claude/skills/jetredline/` |
 | Docx skill (plugin) | `~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/` |
-| Venv python | `~/.claude/skills/judicial-opinion-edit/.venv/bin/python` |
-| splitmarks | `~/.claude/skills/judicial-opinion-edit/splitmarks.py` |
-| Node modules | `~/.claude/skills/judicial-opinion-edit/node_modules/` |
+| Venv python | `~/.claude/skills/jetredline/.venv/bin/python` |
+| splitmarks | `~/.claude/skills/jetredline/splitmarks.py` |
+| Node modules | `~/.claude/skills/jetredline/node_modules/` |
 | soffice (LibreOffice) | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
 | ND opinions (markdown) | `$OPINIONS_MD` → `~/cDocs/refs/ndsc_opinions/markdown/` |
-| ND citation checker | `~/.claude/skills/judicial-opinion-edit/nd_cite_check.py` |
-| Readability metrics | `~/.claude/skills/judicial-opinion-edit/readability_metrics.py` |
+| ND citation checker | `~/.claude/skills/jetredline/nd_cite_check.py` |
+| Readability metrics | `~/.claude/skills/jetredline/readability_metrics.py` |
 | ND legal refs | `~/refs/` (opinions, NDCC, constitution, NDAC) |
 
 The opinions directory contains markdown copies of published ND Supreme Court opinions organized as `<year>/<year>ND<number>.md` (e.g., `2022/2022ND210.md` for *Feickert v. Feickert*, 2022 ND 210). Paragraphs are marked `[¶N]`. Use `$OPINIONS_MD` in commands; fall back to the hardcoded path if the variable is unset.
@@ -50,8 +50,8 @@ This skill has a persistent virtual environment. **Always use this venv python f
 
 If the venv does not exist or a package is missing, create/repair it:
 ```bash
-uv venv ~/.claude/skills/judicial-opinion-edit/.venv
-uv pip install defusedxml pikepdf textstat --python ~/.claude/skills/judicial-opinion-edit/.venv/bin/python
+uv venv ~/.claude/skills/jetredline/.venv
+uv pip install defusedxml pikepdf textstat --python ~/.claude/skills/jetredline/.venv/bin/python
 ```
 
 ## Temporary Files
@@ -76,12 +76,12 @@ The `docx` npm package is pre-installed in this skill's directory. **Do not run 
 
 When running Node scripts that use `docx`, set `NODE_PATH` so Node can find the package:
 ```bash
-NODE_PATH=~/.claude/skills/judicial-opinion-edit/node_modules node script.js
+NODE_PATH=~/.claude/skills/jetredline/node_modules node script.js
 ```
 
 When running docx skill scripts (always include TMPDIR — use the literal absolute path from Step 0):
 ```bash
-TMPDIR=<TMPDIR> PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ ~/.claude/skills/judicial-opinion-edit/.venv/bin/python script.py
+TMPDIR=<TMPDIR> PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ ~/.claude/skills/jetredline/.venv/bin/python script.py
 ```
 where `<TMPDIR>` is the literal path captured in Step 0 (e.g., `/path/to/cases/smith/.tmp-apple-walrus-quilt`).
 
@@ -90,7 +90,7 @@ where `<TMPDIR>` is the literal path captured in Step 0 (e.g., `/path/to/cases/s
 On macOS, `soffice` is not on PATH by default. The docx skill's `pack.py` uses it for validation. **Always prepend the LibreOffice path and set TMPDIR when running pack.py or any command that invokes soffice:**
 
 ```bash
-TMPDIR=<TMPDIR> PATH="/Applications/LibreOffice.app/Contents/MacOS:$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ ~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
+TMPDIR=<TMPDIR> PATH="/Applications/LibreOffice.app/Contents/MacOS:$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ ~/.claude/skills/jetredline/.venv/bin/python ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 ```
 where `<TMPDIR>` is the literal absolute path from Step 0.
 
@@ -122,10 +122,10 @@ If **no `.docx`** is found, ask the user to provide the document text.
 For large PDF files (typically > 50 MB), use `splitmarks` to split the PDF at its top-level bookmarks into individual documents:
 ```bash
 # Preview what bookmarks exist
-~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/splitmarks.py packet.pdf --dry-run -vv
+~/.claude/skills/jetredline/.venv/bin/python ~/.claude/skills/jetredline/splitmarks.py packet.pdf --dry-run -vv
 
 # Split into individual files in an output directory
-~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/splitmarks.py packet.pdf -o split_output -v
+~/.claude/skills/jetredline/.venv/bin/python ~/.claude/skills/jetredline/splitmarks.py packet.pdf -o split_output -v
 ```
 Pass the resulting file paths to the fact-checking subagent in Pass 4.
 
@@ -213,7 +213,7 @@ Adopt the persona of an experienced appellate attorney working for a state supre
 
 Provide the subagent with these instructions:
 
-- Read `~/.claude/skills/judicial-opinion-edit/references/nd-appellate-rules.md`
+- Read `~/.claude/skills/jetredline/references/nd-appellate-rules.md`
 - Read the draft opinion file (provide the path) — focus on the procedural-posture and standard-of-review sections
 - Verify: Was there a timely appeal under N.D.R.App.P. Rules 2.1, 2.2, 3, and 4?
 - Verify: Does the opinion correctly identify the procedural posture and standard of review?
@@ -224,7 +224,7 @@ Provide the subagent with these instructions:
 
 Provide the subagent with these instructions:
 
-- Read `~/.claude/skills/judicial-opinion-edit/references/nd-appellate-rules.md`
+- Read `~/.claude/skills/jetredline/references/nd-appellate-rules.md`
 - Read the draft memo file (provide the path)
 - Check whether the memo addresses appealability: timeliness, subject-matter jurisdiction, and procedural prerequisites (e.g., OMB notification for claims against the state under N.D.C.C. § 32-12.2-04)
 - Check whether the parties' briefs (if available in the working directory) raise jurisdictional issues
@@ -268,7 +268,7 @@ When the opinion exceeds 30 paragraphs, delegate Pass 2 to a Task subagent (suba
 
 > **Style and Grammar Edit — Pass 2**
 >
-> Read the style guide at `~/.claude/skills/judicial-opinion-edit/references/style-guide.md` and the draft opinion at `[path]`.
+> Read the style guide at `~/.claude/skills/jetredline/references/style-guide.md` and the draft opinion at `[path]`.
 >
 > Apply the style and grammar rules to the entire opinion. For each proposed edit, produce a structured entry:
 >
@@ -327,7 +327,7 @@ Pass 3B verifies ALL North Dakota citations — cases, statutes, constitution, c
 >
 > **Step 1: Generate the lookup plan.** Run the citation checker on the opinion file to get structured resolution data:
 > ```bash
-> python3 ~/.claude/skills/judicial-opinion-edit/nd_cite_check.py --file <opinion_path> --refs-dir ~/refs
+> python3 ~/.claude/skills/jetredline/nd_cite_check.py --file <opinion_path> --refs-dir ~/refs
 > ```
 > This outputs a JSON array with one entry per citation found. Each entry includes:
 > - `cite_type`: nd_case, ndcc, ndcc_chapter, nd_const, ndac, nd_court_rule
@@ -518,7 +518,7 @@ In multi-issue documents where each issue has a different standard, verify each 
 
 **CLI mode:** Run the readability metrics script on the document:
 ```bash
-~/.claude/skills/judicial-opinion-edit/.venv/bin/python ~/.claude/skills/judicial-opinion-edit/readability_metrics.py --file <document_path>
+~/.claude/skills/jetredline/.venv/bin/python ~/.claude/skills/jetredline/readability_metrics.py --file <document_path>
 ```
 Parse the JSON output and incorporate the results into the analysis document (see Readability Metrics section in the output template). Flag any sentences over 40 words, sections with passive voice above 25%, and sections with FK grade above 16.
 
@@ -713,7 +713,7 @@ Produce a document structured as below. The **Substantive Concerns** section var
 [Significant style changes by category]
 
 ---
-*Generated by judicial-opinion-edit v1.4 (2026-02-24)*
+*Generated by JetRedline v2.0 (2026-02-25)*
 *Claude Opus 4.6 · Justice Jerod Tufte, North Dakota Supreme Court*
 
 –End Analysis–
