@@ -14,6 +14,24 @@ The editing pipeline runs seven passes:
 
 Passes 1–7 run as parallel subagents where possible. After all passes complete, the pipeline collects results and produces up to two outputs: a tracked-changes .docx (Pass 2 edits become tracked insertions/deletions; other pass findings become document comments) and a companion analysis document summarizing all findings.
 
+## Analysis Document
+
+The analysis document includes the following sections (some vary by document type):
+
+- **Case Highlight** (opinions only) — case name, citation, disposition, and core holdings
+- **Jurisdictional Notes** — timeliness, procedural posture, and standard of review issues
+- **Summary of Edits** — overview of types and volume of changes
+- **Fact Check** — table of factual claims verified against record materials
+- **Brief Matching** — table showing whether each party argument is addressed
+- **Internal Consistency** — name, date, and terminology discrepancies across the document
+- **Standard of Review Consistency** — whether deference language matches stated standards
+- **Readability Metrics** — Flesch-Kincaid grade, sentence length, passive voice, and nominalization density by section
+- **Substantive Concerns** (opinions) — potential dicta, alternative rationales, ambiguity/vulnerability, logical issues, and dissent/concurrence cross-check
+- **Memo Analysis** (memos) — issue completeness, balance of presentation, recommendation assessment, analytical gaps, and standard of review application
+- **Citation Verification** — table with quote checks, substantive support assessments, and source links
+- **Citation Format Issues** — Bluebook corrections
+- **Style Notes** — significant style changes by category
+
 ## Prerequisites
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI) installed
