@@ -34,20 +34,84 @@ The analysis document includes the following sections (some vary by document typ
 
 ## Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI) installed
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI) or [Claude Desktop](https://claude.ai/download) with Cowork
 - Python 3.10+
 - Node.js 18+
 - [LibreOffice](https://www.libreoffice.org/) (for document conversion)
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
+**Windows additional requirements:**
+- PowerShell 5.1+ (included with Windows 10/11)
+- Git Bash (recommended, included with [Git for Windows](https://gitforwindows.org/))
+
 ## Installation
 
-### Claude Desktop
+### Cowork Plugin (Claude Desktop)
+
+1. Download [`jetredline-plugin.zip`](https://github.com/jet52/jetredline/releases/latest)
+2. Open Claude Desktop → Settings → Customize → Install Plugin
+3. Select the downloaded zip file
+4. Run the appropriate installer to set up dependencies:
+   - **macOS/Linux:** `bash install.sh` from the plugin directory
+   - **Windows:** `powershell -ExecutionPolicy Bypass -File install.ps1` from the plugin directory
+
+### Claude Code (CLI)
+
+**Option A: From .zip**
+
+1. Download and extract [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
+2. Run the installer:
+   - **macOS/Linux:**
+     ```bash
+     bash install.sh
+     ```
+   - **Windows (PowerShell):**
+     ```powershell
+     powershell -ExecutionPolicy Bypass -File install.ps1
+     ```
+   The installer will:
+   - Copy skill files to `~/.claude/skills/jetredline/`
+   - Create a Python virtual environment with required packages
+   - Run `npm install` for the `docx` Node.js package
+
+**Option B: From source**
+
+```bash
+git clone https://github.com/jet52/jetredline.git
+cd jetredline
+make install
+```
+
+**Option C: Manual**
+
+macOS/Linux:
+```bash
+mkdir -p ~/.claude/skills/jetredline
+cp -a skills/jetredline/* ~/.claude/skills/jetredline/
+
+cd ~/.claude/skills/jetredline
+uv venv .venv
+uv pip install defusedxml pikepdf textstat --python .venv/bin/python
+npm install
+```
+
+Windows (PowerShell):
+```powershell
+New-Item -ItemType Directory -Force -Path "$HOME\.claude\skills\jetredline"
+Copy-Item -Path "skills\jetredline\*" -Destination "$HOME\.claude\skills\jetredline" -Recurse -Force
+
+Set-Location "$HOME\.claude\skills\jetredline"
+uv venv .venv
+uv pip install defusedxml pikepdf textstat --python .venv\Scripts\python.exe
+npm install
+```
+
+### Claude Desktop (Manual Skill Install)
 
 1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
 2. Open Settings > Features > Claude's Computer Use > Skills directory
 3. Set the skills directory to a folder of your choice (e.g., `~/.claude/skills/`)
-4. Copy `skill/` contents into `<skills-dir>/jetredline/`
+4. Copy `skills/jetredline/` contents into `<skills-dir>/jetredline/`
 5. Set up the Python venv and Node dependencies manually (see Option C above)
 
 ### Claude Projects (web)
@@ -82,58 +146,24 @@ Provide a `.docx` draft opinion in the working directory. Optionally include `.p
 
 ```
 jetredline/
-├── README.md
-├── Makefile
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   └── jetredline/
+│       ├── SKILL.md
+│       ├── TMPDIR-CONFIGURATION.md
+│       ├── package.json
+│       ├── nd_cite_check.py
+│       ├── readability_metrics.py
+│       ├── splitmarks.py
+│       └── references/
+│           ├── nd-appellate-rules.md
+│           └── style-guide.md
 ├── install.sh
-├── .gitignore
-└── skill/
-    ├── SKILL.md
-    ├── TMPDIR-CONFIGURATION.md
-    ├── package.json
-    ├── nd_cite_check.py
-    ├── readability_metrics.py
-    ├── splitmarks.py          # vendored PDF bookmark splitter
-    └── references/
-        ├── nd-appellate-rules.md
-        └── style-guide.md
-```
-
-### Claude Code (CLI)
-
-**Option A: From .zip**
-
-1. Download and extract [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
-2. Run the installer:
-   ```bash
-   bash install.sh
-   ```
-   The installer will:
-   - Copy skill files to `~/.claude/skills/jetredline/`
-   - Create a Python virtual environment with required packages
-   - Run `npm install` for the `docx` Node.js package
-
-**Option B: From source**
-
-```bash
-git clone https://github.com/jet52/jetredline.git
-cd jetredline
-make install
-```
-
-**Option C: Manual**
-
-```bash
-# Copy skill files
-mkdir -p ~/.claude/skills/jetredline
-cp -a skill/* ~/.claude/skills/jetredline/
-
-# Set up Python venv
-cd ~/.claude/skills/jetredline
-uv venv .venv
-uv pip install defusedxml pikepdf textstat --python .venv/bin/python
-
-# Install Node dependencies
-npm install
+├── install.ps1
+├── Makefile
+├── README.md
+└── .gitignore
 ```
 
 ## External Dependencies

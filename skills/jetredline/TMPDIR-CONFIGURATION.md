@@ -16,7 +16,7 @@ The JetRedline skill was creating temporary files in system-wide locations (`/tm
 
 Python's `tempfile` module (used by the docx skill) respects the `TMPDIR` environment variable. When set, all temporary files are created in that location instead of the system default.
 
-In Step 0, a uniquely-named temp directory is created using three random dictionary words (e.g., `.tmp-apple-walrus-quilt`). The absolute path is captured and used as a literal `TMPDIR=<path>` prefix — no `$(pwd)` command substitution, which eliminates repeated permission prompts.
+In Step 0, a uniquely-named temp directory is created using a UUID fragment (e.g., `.tmp-a1b2c3d4e5f6`). The absolute path is captured and used as a literal `TMPDIR=<path>` prefix — no `$(pwd)` command substitution, which eliminates repeated permission prompts. The UUID approach works cross-platform (no dependency on `/usr/share/dict/words`).
 
 This ensures:
 - ✅ All temp files for a case go into `<case-directory>/.tmp-<random>/`
@@ -59,12 +59,12 @@ This ensures the directory exists before any Python scripts try to create temp f
 
 In Step 0, run once to create a unique temp dir and capture the path:
 ```bash
-SKILL_TMPDIR="$PWD/.tmp-$(awk 'BEGIN{srand()}{a[NR]=tolower($0)}END{for(i=1;i<=3;i++)printf "%s%s",(i>1?"-":""),a[int(rand()*NR)+1]}' /usr/share/dict/words)" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
+SKILL_TMPDIR="$PWD/.tmp-$(python3 -c "import uuid; print(str(uuid.uuid4())[:12])")" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
 ```
 
 Then use the literal output path in all subsequent commands:
 ```bash
-TMPDIR=/path/to/cases/smith/.tmp-apple-walrus-quilt PYTHONPATH=/path/to/docx/ /path/to/python script.py
+TMPDIR=/path/to/cases/smith/.tmp-a1b2c3d4e5f6 PYTHONPATH=/path/to/docx/ /path/to/python script.py
 ```
 
 ### Benefits

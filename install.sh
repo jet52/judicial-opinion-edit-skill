@@ -11,7 +11,7 @@ echo "Installing $SKILL_NAME skill..."
 mkdir -p "$INSTALL_DIR"
 
 # Copy skill files
-cp -a "$SCRIPT_DIR/skill/"* "$INSTALL_DIR/"
+cp -a "$SCRIPT_DIR/skills/jetredline/"* "$INSTALL_DIR/"
 
 echo "Installed to $INSTALL_DIR"
 

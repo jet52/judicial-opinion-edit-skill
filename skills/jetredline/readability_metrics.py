@@ -20,8 +20,14 @@ from pathlib import Path
 try:
     import textstat
 except ImportError:
-    print("Error: textstat not installed. Run: uv pip install textstat "
-          "--python ~/.claude/skills/jetredline/.venv/bin/python",
+    import platform
+    venv_hint = (
+        "~/.claude/skills/jetredline/.venv/Scripts/python.exe"
+        if platform.system() == "Windows"
+        else "~/.claude/skills/jetredline/.venv/bin/python"
+    )
+    print(f"Error: textstat not installed. Run: uv pip install textstat "
+          f"--python {venv_hint}",
           file=sys.stderr)
     sys.exit(1)
 

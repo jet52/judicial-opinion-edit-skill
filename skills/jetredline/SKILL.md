@@ -16,6 +16,49 @@ Determine your runtime environment from available capabilities:
 
 Do not ask the user which mode to use — sense it from your available tools.
 
+## Platform Detection
+
+At the start of each CLI session, detect the operating system and set variables for platform-dependent paths. Run this **once** before any other commands:
+
+```bash
+if [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then
+  VENV_PYTHON=~/.claude/skills/jetredline/.venv/bin/python
+  SOFFICE="/Applications/LibreOffice.app/Contents/MacOS/soffice"
+elif [[ "$(uname -s 2>/dev/null)" == *"MINGW"* ]] || [[ "$(uname -s 2>/dev/null)" == *"MSYS"* ]] || [[ "$OS" == "Windows_NT" ]]; then
+  VENV_PYTHON=~/.claude/skills/jetredline/.venv/Scripts/python.exe
+  # Auto-detect LibreOffice on Windows
+  if [ -f "/c/Program Files/LibreOffice/program/soffice.exe" ]; then
+    SOFFICE="/c/Program Files/LibreOffice/program/soffice.exe"
+  elif [ -f "/c/Program Files (x86)/LibreOffice/program/soffice.exe" ]; then
+    SOFFICE="/c/Program Files (x86)/LibreOffice/program/soffice.exe"
+  else
+    SOFFICE="soffice"
+  fi
+else
+  # Linux
+  VENV_PYTHON=~/.claude/skills/jetredline/.venv/bin/python
+  SOFFICE="soffice"
+fi
+```
+
+If running in **PowerShell** (Windows without Git Bash):
+```powershell
+$VENV_PYTHON = "$HOME\.claude\skills\jetredline\.venv\Scripts\python.exe"
+if (Test-Path "C:\Program Files\LibreOffice\program\soffice.exe") {
+  $SOFFICE = "C:\Program Files\LibreOffice\program\soffice.exe"
+} elseif (Test-Path "C:\Program Files (x86)\LibreOffice\program\soffice.exe") {
+  $SOFFICE = "C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+} else {
+  $SOFFICE = "soffice"
+}
+```
+
+Use `$VENV_PYTHON` and `$SOFFICE` in all subsequent commands instead of hardcoded paths.
+
+**Environment variable syntax** differs by shell:
+- Bash (macOS/Linux/Git Bash): `VAR=val command`
+- PowerShell (Windows): `$env:VAR='val'; command`
+
 ## Fixed Paths — Do Not Search
 
 **Web mode:** Skip the next five sections (Fixed Paths, Python Environment, Node.js Environment, LibreOffice, Temporary Files) — they apply only in CLI mode. Proceed to Workflow.
@@ -26,10 +69,10 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 |----------|------|
 | This skill | `~/.claude/skills/jetredline/` |
 | Docx skill (plugin) | `~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/` |
-| Venv python | `~/.claude/skills/jetredline/.venv/bin/python` |
+| Venv python | `$VENV_PYTHON` (macOS/Linux: `.venv/bin/python`, Windows: `.venv/Scripts/python.exe`) |
 | splitmarks | `~/.claude/skills/jetredline/splitmarks.py` |
 | Node modules | `~/.claude/skills/jetredline/node_modules/` |
-| soffice (LibreOffice) | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
+| soffice (LibreOffice) | `$SOFFICE` (macOS: `/Applications/LibreOffice.app/Contents/MacOS/soffice`, Windows: auto-detected, Linux: `soffice`) |
 | ND opinions (markdown) | `$OPINIONS_MD` → `~/cDocs/refs/ndsc_opinions/markdown/` |
 | ND citation checker | `~/.claude/skills/jetredline/nd_cite_check.py` |
 | Readability metrics | `~/.claude/skills/jetredline/readability_metrics.py` |
@@ -51,7 +94,7 @@ This skill has a persistent virtual environment. **Always use this venv python f
 If the venv does not exist or a package is missing, create/repair it:
 ```bash
 uv venv ~/.claude/skills/jetredline/.venv
-uv pip install defusedxml pikepdf textstat --python ~/.claude/skills/jetredline/.venv/bin/python
+uv pip install defusedxml pikepdf textstat --python $VENV_PYTHON
 ```
 
 ## Temporary Files
@@ -60,13 +103,13 @@ uv pip install defusedxml pikepdf textstat --python ~/.claude/skills/jetredline/
 
 **Step 0 temp-dir setup (run once):**
 ```bash
-SKILL_TMPDIR="$PWD/.tmp-$(awk 'BEGIN{srand()}{a[NR]=tolower($0)}END{for(i=1;i<=3;i++)printf "%s%s",(i>1?"-":""),a[int(rand()*NR)+1]}' /usr/share/dict/words)" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
+SKILL_TMPDIR="$PWD/.tmp-$(python3 -c "import uuid; print(str(uuid.uuid4())[:12])")" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
 ```
-This picks three random dictionary words to form a unique directory name (e.g., `.tmp-apple-walrus-quilt`), preventing collisions between concurrent sessions.
+This generates a UUID-based unique directory name (e.g., `.tmp-a1b2c3d4e5f6`), preventing collisions between concurrent sessions. Works cross-platform (no dependency on `/usr/share/dict/words`).
 
-**Capture the output** (the absolute path printed by `echo`) and use it as a literal string in all subsequent commands. For example, if the output is `/path/to/cases/smith/.tmp-apple-walrus-quilt`, then every later command uses:
+**Capture the output** (the absolute path printed by `echo`) and use it as a literal string in all subsequent commands. For example, if the output is `/path/to/cases/smith/.tmp-a1b2c3d4e5f6`, then every later command uses:
 ```
-TMPDIR=/path/to/cases/smith/.tmp-apple-walrus-quilt
+TMPDIR=/path/to/cases/smith/.tmp-a1b2c3d4e5f6
 ```
 **Never** use `TMPDIR="$(pwd)/.tmp"` — the command substitution triggers unnecessary permission prompts on every invocation.
 
@@ -81,20 +124,20 @@ NODE_PATH=~/.claude/skills/jetredline/node_modules node script.js
 
 When running docx skill scripts (always include TMPDIR — use the literal absolute path from Step 0):
 ```bash
-TMPDIR=<TMPDIR> PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ ~/.claude/skills/jetredline/.venv/bin/python script.py
+TMPDIR=<TMPDIR> PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON script.py
 ```
 where `<TMPDIR>` is the literal path captured in Step 0 (e.g., `/path/to/cases/smith/.tmp-apple-walrus-quilt`).
 
 ## LibreOffice (soffice)
 
-On macOS, `soffice` is not on PATH by default. The docx skill's `pack.py` uses it for validation. **Always prepend the LibreOffice path and set TMPDIR when running pack.py or any command that invokes soffice:**
+`soffice` may not be on PATH by default. The docx skill's `pack.py` uses it for validation. **Always prepend the LibreOffice path (via `$SOFFICE`) and set TMPDIR when running pack.py or any command that invokes soffice:**
 
 ```bash
-TMPDIR=<TMPDIR> PATH="/Applications/LibreOffice.app/Contents/MacOS:$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ ~/.claude/skills/jetredline/.venv/bin/python ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
+TMPDIR=<TMPDIR> PATH="$(dirname "$SOFFICE"):$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 ```
 where `<TMPDIR>` is the literal absolute path from Step 0.
 
-Also use this PATH prefix for document-to-image conversion (`soffice --headless --convert-to pdf`) and any other LibreOffice operations.
+Also use this PATH prefix (or invoke `$SOFFICE` directly) for document-to-image conversion (`"$SOFFICE" --headless --convert-to pdf`) and any other LibreOffice operations.
 
 ## Workflow
 
@@ -104,9 +147,9 @@ Also use this PATH prefix for document-to-image conversion (`soffice --headless 
 
 **First, create the temp directory** with a unique random name:
 ```bash
-SKILL_TMPDIR="$PWD/.tmp-$(awk 'BEGIN{srand()}{a[NR]=tolower($0)}END{for(i=1;i<=3;i++)printf "%s%s",(i>1?"-":""),a[int(rand()*NR)+1]}' /usr/share/dict/words)" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
+SKILL_TMPDIR="$PWD/.tmp-$(python3 -c "import uuid; print(str(uuid.uuid4())[:12])")" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
 ```
-**Capture the absolute path** printed by this command (e.g., `/path/to/cases/smith/.tmp-apple-walrus-quilt`). Use this literal path as `TMPDIR=<path>` in all subsequent commands — never use `$(pwd)` or other command substitution for TMPDIR.
+**Capture the absolute path** printed by this command (e.g., `/path/to/cases/smith/.tmp-a1b2c3d4e5f6`). Use this literal path as `TMPDIR=<path>` in all subsequent commands — never use `$(pwd)` or other command substitution for TMPDIR.
 
 Then scan the current working directory for:
 - **`.docx` files** — potential draft opinions, memos, or dissents
@@ -122,10 +165,10 @@ If **no `.docx`** is found, ask the user to provide the document text.
 For large PDF files (typically > 50 MB), use `splitmarks` to split the PDF at its top-level bookmarks into individual documents:
 ```bash
 # Preview what bookmarks exist
-~/.claude/skills/jetredline/.venv/bin/python ~/.claude/skills/jetredline/splitmarks.py packet.pdf --dry-run -vv
+$VENV_PYTHON ~/.claude/skills/jetredline/splitmarks.py packet.pdf --dry-run -vv
 
 # Split into individual files in an output directory
-~/.claude/skills/jetredline/.venv/bin/python ~/.claude/skills/jetredline/splitmarks.py packet.pdf -o split_output -v
+$VENV_PYTHON ~/.claude/skills/jetredline/splitmarks.py packet.pdf -o split_output -v
 ```
 Pass the resulting file paths to the fact-checking subagent in Pass 4.
 
@@ -519,7 +562,7 @@ In multi-issue documents where each issue has a different standard, verify each 
 
 **CLI mode:** Run the readability metrics script on the document:
 ```bash
-~/.claude/skills/jetredline/.venv/bin/python ~/.claude/skills/jetredline/readability_metrics.py --file <document_path>
+$VENV_PYTHON ~/.claude/skills/jetredline/readability_metrics.py --file <document_path>
 ```
 Parse the JSON output and incorporate the results into the analysis document (see Readability Metrics section in the output template). Flag any sentences over 40 words, sections with passive voice above 25%, and sections with FK grade above 16.
 

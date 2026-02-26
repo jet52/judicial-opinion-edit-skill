@@ -1,6 +1,6 @@
-.venv/
-node_modules/
-__pycache__/
+skills/jetredline/.venv/
+skills/jetredline/node_modules/
+skills/jetredline/__pycache__/
 *.pyc
 .DS_Store
 *.zip
