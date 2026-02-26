@@ -2,6 +2,18 @@
 
 Appellate judicial opinion and bench memo editor and proofreader. Produces a Word document (.docx) with tracked changes showing proposed edits, plus a separate analysis document with explanations. Applies Garner's Redbook, Bluebook citation format, and style preferences drawn from Justice Jerod Tufte (ND Supreme Court).
 
+The editing pipeline runs seven passes:
+
+1. **Jurisdictional check** — verifies timeliness of appeal, procedural posture, and standard of review against the ND Rules of Appellate Procedure
+2. **Style and grammar** — applies Redbook rules and plain-language preferences; produces structured edit list
+3. **Citation check** — Bluebook format review (3A) and substantive verification of ND citations against local reference files and official sources (3B)
+4. **Fact check** — verifies factual claims against party briefs and record materials
+5. **Analytical rigor** — internal consistency, standard-of-review consistency, readability metrics, and (for opinions) structural completeness
+6. **Brief matching** — confirms the opinion or memo addresses every argument raised by the parties
+7. **Dissent/concurrence cross-check** — checks fair characterization and responsiveness between majority and separate writings
+
+Passes 1–7 run as parallel subagents where possible. After all passes complete, the pipeline collects results and produces up to two outputs: a tracked-changes .docx (Pass 2 edits become tracked insertions/deletions; other pass findings become document comments) and a companion analysis document summarizing all findings.
+
 ## Prerequisites
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI) installed
