@@ -27,17 +27,17 @@ $VenvPython = Join-Path $VenvDir "Scripts\python.exe"
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     Write-Host "Using uv to create venv..."
     & uv venv $VenvDir --clear
-    & uv pip install defusedxml pikepdf textstat --python $VenvPython
+    & uv pip install -r "$InstallDir\requirements.txt" --python $VenvPython
 } elseif (Get-Command python3 -ErrorAction SilentlyContinue) {
     Write-Host "Using python3 to create venv..."
     & python3 -m venv $VenvDir --clear
     & $VenvPython -m pip install --upgrade pip
-    & $VenvPython -m pip install defusedxml pikepdf textstat
+    & $VenvPython -m pip install -r "$InstallDir\requirements.txt"
 } elseif (Get-Command python -ErrorAction SilentlyContinue) {
     Write-Host "Using python to create venv..."
     & python -m venv $VenvDir --clear
     & $VenvPython -m pip install --upgrade pip
-    & $VenvPython -m pip install defusedxml pikepdf textstat
+    & $VenvPython -m pip install -r "$InstallDir\requirements.txt"
 } else {
     Write-Host "ERROR: Neither uv nor python found. Cannot create virtual environment." -ForegroundColor Red
     Write-Host "  Install Python 3 from https://www.python.org/ or uv from https://docs.astral.sh/uv/"

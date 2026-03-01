@@ -48,7 +48,7 @@ The analysis document includes the following sections (some vary by document typ
 
 ### Cowork Plugin (Claude Desktop)
 
-1. Download [`jetredline-plugin.zip`](https://github.com/jet52/jetredline/releases/latest)
+1. Download [`jetredline-plugin.zip`](https://github.com/jet52/jetredline/releases/latest/download/jetredline-plugin.zip)
 2. Open Claude Desktop → Settings → Customize → Install Plugin
 3. Select the downloaded zip file
 4. Run the appropriate installer to set up dependencies:
@@ -59,7 +59,7 @@ The analysis document includes the following sections (some vary by document typ
 
 **Option A: From .zip**
 
-1. Download and extract [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
+1. Download and extract [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest/download/jetredline-skill.zip)
 2. Run the installer:
    - **macOS/Linux:**
      ```bash
@@ -91,7 +91,7 @@ cp -a skills/jetredline/* ~/.claude/skills/jetredline/
 
 cd ~/.claude/skills/jetredline
 uv venv .venv
-uv pip install defusedxml pikepdf textstat --python .venv/bin/python
+uv pip install -r requirements.txt --python .venv/bin/python
 npm install
 ```
 
@@ -102,13 +102,13 @@ Copy-Item -Path "skills\jetredline\*" -Destination "$HOME\.claude\skills\jetredl
 
 Set-Location "$HOME\.claude\skills\jetredline"
 uv venv .venv
-uv pip install defusedxml pikepdf textstat --python .venv\Scripts\python.exe
+uv pip install -r requirements.txt --python .venv\Scripts\python.exe
 npm install
 ```
 
 ### Claude Desktop (Manual Skill Install)
 
-1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest)
+1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest/download/jetredline-skill.zip)
 2. Open Settings > Features > Claude's Computer Use > Skills directory
 3. Set the skills directory to a folder of your choice (e.g., `~/.claude/skills/`)
 4. Copy `skills/jetredline/` contents into `<skills-dir>/jetredline/`
@@ -116,7 +116,7 @@ npm install
 
 ### Claude Projects (web)
 
-1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest) from GitHub
+1. Download [`jetredline-skill.zip`](https://github.com/jet52/jetredline/releases/latest/download/jetredline-skill.zip) from GitHub
 2. Open your Claude Project → Project Knowledge
 3. Upload `jetredline-skill.zip`
 4. Paste opinion text or upload .docx/.pdf files in conversation
@@ -151,16 +151,17 @@ jetredline/
 ├── skills/
 │   └── jetredline/
 │       ├── SKILL.md
-│       ├── TMPDIR-CONFIGURATION.md
 │       ├── package.json
 │       ├── nd_cite_check.py
 │       ├── readability_metrics.py
 │       ├── splitmarks.py
+│       ├── requirements.txt
 │       └── references/
 │           ├── nd-appellate-rules.md
 │           └── style-guide.md
 ├── install.sh
 ├── install.ps1
+├── LICENSE
 ├── Makefile
 ├── README.md
 └── .gitignore

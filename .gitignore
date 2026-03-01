@@ -1,7 +1,9 @@
 skills/jetredline/.venv/
 skills/jetredline/node_modules/
 skills/jetredline/__pycache__/
+.claude/settings.local.json
 *.pyc
 .DS_Store
-*.zip
+jetredline-skill.zip
+jetredline-plugin.zip
 package-lock.json

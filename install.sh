@@ -24,12 +24,12 @@ VENV_DIR="$INSTALL_DIR/.venv"
 if command -v uv &>/dev/null; then
     echo "Using uv to create venv..."
     uv venv "$VENV_DIR" --clear
-    uv pip install defusedxml pikepdf textstat --python "$VENV_DIR/bin/python"
+    uv pip install -r "$INSTALL_DIR/requirements.txt" --python "$VENV_DIR/bin/python"
 elif command -v python3 &>/dev/null; then
     echo "Using python3 to create venv..."
     python3 -m venv "$VENV_DIR" --clear
     "$VENV_DIR/bin/pip" install --upgrade pip
-    "$VENV_DIR/bin/pip" install defusedxml pikepdf textstat
+    "$VENV_DIR/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 else
     echo "ERROR: Neither uv nor python3 found. Cannot create virtual environment."
     echo "  Install Python 3 from https://www.python.org/ or uv from https://docs.astral.sh/uv/"
