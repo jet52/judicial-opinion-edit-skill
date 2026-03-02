@@ -79,6 +79,7 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 | ND legal refs | `~/refs/` (opinions, NDCC, constitution, NDAC) |
 | OOXML fixup | `~/.claude/skills/jetredline/ooxml_fixup.py` |
 | OOXML validate | `~/.claude/skills/jetredline/ooxml_validate.py` |
+| Batch edit helper | `~/.claude/skills/jetredline/apply_edits.py` |
 
 The opinions directory contains markdown copies of published ND Supreme Court opinions organized as `<year>/<year>ND<number>.md` (e.g., `2022/2022ND210.md` for *Feickert v. Feickert*, 2022 ND 210). Paragraphs are marked `[¶N]`. Use `$OPINIONS_MD` in commands; fall back to the hardcoded path if the variable is unset.
 
@@ -178,37 +179,31 @@ Pass the resulting file paths to the fact-checking subagent in Pass 4.
 
 ### Step 0.1: Determine Document Type
 
-Classify the document as `DOC_TYPE = opinion` or `DOC_TYPE = memo`. Check in order:
+Classify the document as `DOC_TYPE = opinion` or `DOC_TYPE = memo`. **Auto-detect without asking the user** unless genuinely ambiguous (no markers found at all).
 
 1. **Invocation keywords:** If the user's prompt contains "bench memo", "memo", "law clerk draft", or similar → `memo`
-2. **Document content:** If the document contains markers typical of bench memos (e.g., "BENCH MEMORANDUM", "BENCH MEMO", "Issues Presented", "Recommendation", "Staff Attorney" heading patterns) → `memo`
-3. **Ambiguous:** If neither signal is present and the document could be either type, ask the user. **CLI mode:** Use `AskUserQuestion` as shown below. **Web mode:** Ask the user directly in conversation.
+2. **Opinion markers:** If the document contains "FILED", a case caption with docket number, "OPINION OF THE COURT", "We affirm", "We reverse", "PER CURIAM", or similar appellate opinion markers → `opinion`
+3. **Memo markers:** If the document contains "BENCH MEMORANDUM", "BENCH MEMO", "Issues Presented", "Recommendation", "Staff Attorney" heading patterns → `memo`
+4. **Ambiguous (no markers found):** Only if none of the above signals are present, ask the user. **CLI mode:** Use `AskUserQuestion`. **Web mode:** Ask directly.
    - **Question:** "Is this a draft judicial opinion or a bench memo?"
    - **Header:** "Doc type"
    - **Options:**
      1. **Judicial opinion** — Draft opinion, concurrence, or dissent
      2. **Bench memo** — Staff attorney or law clerk memo to the court
-4. **Default:** `opinion`
+5. **Default:** `opinion`
+
+When auto-detecting, briefly state the detected type (e.g., "Detected: judicial opinion (FILED marker found)") and proceed. Do not ask for confirmation.
 
 Store `DOC_TYPE` and reference it in conditional sections of Passes 1 and 5 and the analysis document output.
 
-### Step 0.5: Ask Output Preferences
+### Step 0.5: Determine Output Preferences
 
 **Web mode:** Do not ask for output preferences. Only the markdown analysis document is available — tracked-changes .docx requires CLI tools (Bash, docx skill, LibreOffice). State this briefly: "In this environment I can produce a markdown analysis report but not a tracked-changes .docx." Proceed unless the user objects.
 
-**Ask the user which outputs they want:**
+**CLI mode:** Default to producing **both** documents (tracked-changes .docx + analysis document) without asking. Only ask if the user explicitly specified a different preference in their invocation (e.g., "just the redline" or "analysis only").
 
-Use the AskUserQuestion tool to present these options:
-
-**Question:** "Which output(s) would you like me to produce?"
-**Header:** "Output type"
-**Options:**
-1. **Both documents** — Tracked-changes .docx + analysis document (full editing service)
-2. **Tracked-changes .docx only** — Just the edited opinion with markup (saves tokens, no analysis)
-3. **Analysis document only** — Research and findings without producing edited .docx (saves time on OOXML assembly)
-
-Store the user's choice and adjust the workflow accordingly:
-- If **both**: Follow the full workflow through Step 10
+If the user did specify a preference, honor it:
+- If **both** (default): Follow the full workflow through Step 10
 - If **tracked-changes only**: Complete all editing passes, produce the .docx in Step 9, skip Step 10 (analysis document)
 - If **analysis only**: Complete all editing passes and collect findings, produce only the analysis document in Step 10, skip Step 9 (.docx creation)
 
@@ -225,14 +220,73 @@ Store the user's choice and adjust the workflow accordingly:
 6b. **Delegate Pass 7** (dissent/concurrence cross-check) to a subagent if a dissent or concurrence was identified in Step 0 and `DOC_TYPE == opinion` — see Pass 7 below
 7. **Pass 2 routing:** If the opinion has **more than 30 paragraphs**, delegate Pass 2 to a subagent — see "Delegated Pass 2" below. Otherwise, perform Pass 2 in main context. **Pass 5** (analytical rigor) is always performed in main context. Pass 2 (when not delegated) and Pass 5 can proceed in parallel with subagents.
 8. Collect subagent results from Passes 1, 3, 4, 6, 7, and (if delegated) Pass 2 — **use the `TaskOutput` tool**, not Bash `tail`
-9. **If user requested tracked-changes .docx** (both or tracked-changes only): Produce tracked-changes .docx output using the docx skill's editing workflow
+9. **If user requested tracked-changes .docx** (both or tracked-changes only): Produce tracked-changes .docx output using the batch edit workflow (see Step 9 details below)
 10. **If user requested analysis document** (both or analysis only): Produce the companion analysis document (incorporating all subagent results). If also producing .docx, create both outputs in the same response
 
-**If the opinion is a .docx file:** use the docx skill's unpack → edit XML → repack workflow to add tracked changes and comments directly to the original document.
+**If the opinion is a .docx file:** use the docx skill's unpack workflow, then apply edits via `apply_edits.py`.
 
 **Single-session editing.** All tracked changes and comments must be applied in a single script execution against a single unpack. Do not unpack → edit → pack → unpack again. Multiple cycles cause ID collisions and orphaned artifacts. If retrying, start fresh from the original .docx.
 
 **If the opinion is plain text or another format:** create a new .docx using the docx skill, with tracked-change markup showing all edits.
+
+#### Step 9 Details: Batch Edit Workflow
+
+**9a. Unpack the input .docx:**
+```bash
+TMPDIR=<TMPDIR> PYTHONPATH=$DOCX_PLUGIN_PATH $VENV_PYTHON $DOCX_PLUGIN_PATH/ooxml/scripts/unpack.py <input.docx> <TMPDIR>/unpacked
+```
+
+**9b. Pre-validate and fix the unpacked input** (catches inherited structural problems before editing):
+```bash
+$VENV_PYTHON ~/.claude/skills/jetredline/ooxml_validate.py <TMPDIR>/unpacked
+```
+If validation fails, run the fixup first:
+```bash
+$VENV_PYTHON ~/.claude/skills/jetredline/ooxml_fixup.py <TMPDIR>/unpacked
+```
+Then re-validate. This ensures edits start from a clean baseline.
+
+**9c. Collect all edits into a JSON file.** Gather Pass 2 edits (style/grammar), Pass 3A edits (citation format), and Pass 5 edits (analytical rigor) into a single JSON array:
+```json
+[
+    {
+        "type": "replace",
+        "para": 3,
+        "old": "It is well settled that the court must consider",
+        "new": "The court must consider",
+        "comment": "Cut throat-clearing (Redbook § 11.3)"
+    },
+    {
+        "type": "replace",
+        "para": 7,
+        "old": "and/or",
+        "new": "or",
+        "comment": "Never use 'and/or' (Redbook § 11.2)"
+    },
+    {
+        "type": "comment",
+        "para": 12,
+        "anchor": "we find that",
+        "comment": "Consider replacing 'we find' — implies independent factfinding under clear-error review"
+    }
+]
+```
+Write this JSON to `<TMPDIR>/edits.json`.
+
+**9d. Run apply_edits.py:**
+```bash
+TMPDIR=<TMPDIR> PYTHONPATH=$DOCX_PLUGIN_PATH $VENV_PYTHON ~/.claude/skills/jetredline/apply_edits.py --input <TMPDIR>/unpacked --edits <TMPDIR>/edits.json --author "Claude" --output <output.docx>
+```
+
+The script automatically:
+- Applies all tracked changes and comments via the docx plugin's Document API
+- Runs `ooxml_fixup.py` (ID deconfliction, relationship dedup, orphan cleanup, xml:space fix)
+- Runs `ooxml_validate.py` (checks for remaining issues)
+- Packs the result into the output .docx
+
+**9e. Check the output.** Parse the JSON summary from apply_edits.py. If any edits failed, report them. If validation failed, diagnose and fix before proceeding.
+
+This replaces the previous pattern of building a bespoke XML-editing Python script each run. The agent's job is now: collect edits into JSON (1 Write call), run one command (1 Bash call).
 
 **Web mode workflow:**
 1. Read `references/style-guide.md` from project knowledge. If not found, tell the user to upload it.
@@ -417,6 +471,18 @@ Pass 3B verifies ALL North Dakota citations — cases, statutes, constitution, c
 > For locally-verified citations, still include the official URL from the lookup plan so readers can independently check the source. The URL was already computed — do not substitute or shorten it.
 >
 > 7. **Return** the completed table and a summary: [X] ND citations checked, by type: [opinions/statutes/const/rules/admin]. [Y] quotes verified. [Z] quote discrepancies. [W] not found. [V] citations that may not support the stated proposition.
+>
+> **Error handling:**
+> - If `nd_cite_check.py` fails or returns an error, report the error in the summary and proceed with manual verification using the URL patterns and local paths below.
+> - If a local reference file does not exist for a citation, proceed with web verification only (WebFetch on the `url`). Do not stall or re-search for the file.
+> - If WebFetch also fails, mark the citation as **UNVERIFIED** in the results table with the reason (e.g., "Local file missing, URL unreachable").
+> - Always return partial results. A table with UNVERIFIED entries is better than no table. Never fail silently — every citation must appear in the output table with a status.
+>
+> **Reference file paths (do not search — use directly):**
+> - ND opinions (markdown): `~/refs/opin/markdown/` — organized as `<year>/<year>ND<number>.md`
+> - ND Century Code: `~/refs/ndcc/` — organized by title/chapter
+> - ND Constitution: `~/refs/cnst/`
+> - ND Administrative Code: `~/refs/ndac/`
 
 **Web mode:** Skip local resolution — no `~/refs/` directory is available.
 1. Run `nd_cite_check.py` with `--refs-dir /dev/null` (or skip the script entirely and use the URL patterns below).
