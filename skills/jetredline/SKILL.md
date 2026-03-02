@@ -77,6 +77,8 @@ All paths are hardcoded. **Do not run `ls`, `find`, or any discovery commands to
 | ND citation checker | `~/.claude/skills/jetredline/nd_cite_check.py` |
 | Readability metrics | `~/.claude/skills/jetredline/readability_metrics.py` |
 | ND legal refs | `~/refs/` (opinions, NDCC, constitution, NDAC) |
+| OOXML fixup | `~/.claude/skills/jetredline/ooxml_fixup.py` |
+| OOXML validate | `~/.claude/skills/jetredline/ooxml_validate.py` |
 
 The opinions directory contains markdown copies of published ND Supreme Court opinions organized as `<year>/<year>ND<number>.md` (e.g., `2022/2022ND210.md` for *Feickert v. Feickert*, 2022 ND 210). Paragraphs are marked `[¶N]`. Use `$OPINIONS_MD` in commands; fall back to the hardcoded path if the variable is unset.
 
@@ -136,6 +138,8 @@ where `<TMPDIR>` is the literal path captured in Step 0 (e.g., `/path/to/cases/s
 TMPDIR=<TMPDIR> PATH="$(dirname "$SOFFICE"):$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 ```
 where `<TMPDIR>` is the literal absolute path from Step 0.
+
+Do not use `--force` with pack.py. Run `ooxml_fixup.py` before packing to resolve issues that previously required `--force`. If pack.py still reports errors, run `ooxml_validate.py` to diagnose.
 
 Also use this PATH prefix (or invoke `$SOFFICE` directly) for document-to-image conversion (`"$SOFFICE" --headless --convert-to pdf`) and any other LibreOffice operations.
 
@@ -225,6 +229,8 @@ Store the user's choice and adjust the workflow accordingly:
 10. **If user requested analysis document** (both or analysis only): Produce the companion analysis document (incorporating all subagent results). If also producing .docx, create both outputs in the same response
 
 **If the opinion is a .docx file:** use the docx skill's unpack → edit XML → repack workflow to add tracked changes and comments directly to the original document.
+
+**Single-session editing.** All tracked changes and comments must be applied in a single script execution against a single unpack. Do not unpack → edit → pack → unpack again. Multiple cycles cause ID collisions and orphaned artifacts. If retrying, start fresh from the original .docx.
 
 **If the opinion is plain text or another format:** create a new .docx using the docx skill, with tracked-change markup showing all edits.
 
@@ -598,6 +604,24 @@ Use the docx skill to produce a .docx with:
 - Deletions as tracked deletions (author: "Claude")
 - Insertions as tracked insertions (author: "Claude")
 - Comments (via comment.py) for substantive notes — explaining a change or flagging an issue
+
+**Assembly workflow** (follow this exact order):
+1. **Unpack** the original .docx
+2. **Edit** the unpacked XML (tracked changes, comments) in a single script execution
+3. **Run `ooxml_fixup.py`** to deconflict IDs, deduplicate relationships, clean orphans, and fix `xml:space`:
+   ```bash
+   $VENV_PYTHON ~/.claude/skills/jetredline/ooxml_fixup.py <unpacked_dir>
+   ```
+4. **Run `ooxml_validate.py`** to verify the document is clean:
+   ```bash
+   $VENV_PYTHON ~/.claude/skills/jetredline/ooxml_validate.py <unpacked_dir>
+   ```
+5. **Pack** the directory into a .docx (without `--force`):
+   ```bash
+   TMPDIR=<TMPDIR> PATH="$(dirname "$SOFFICE"):$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <unpacked_dir> <output.docx>
+   ```
+
+Do not use `--force` with pack.py. The fixup script resolves issues that previously required it. If validation fails, run `ooxml_validate.py` to diagnose.
 
 ### Analysis document (if requested)
 Produce a document structured as below. The **Substantive Concerns** section varies by `DOC_TYPE`.
