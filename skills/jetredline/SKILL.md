@@ -18,25 +18,24 @@ Do not ask the user which mode to use — sense it from your available tools.
 
 ## Platform Detection
 
-At the start of each CLI session, detect the operating system and set variables for platform-dependent paths. Run this **once** before any other commands:
+At the start of each CLI session, set variables for platform-dependent paths. **Do not use `$(uname)` or other command substitution** — it triggers unnecessary permission prompts. Instead, check for platform-specific files directly:
 
 ```bash
-if [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then
-  VENV_PYTHON=~/.claude/skills/jetredline/.venv/bin/python
+VENV_PYTHON=~/.claude/skills/jetredline/.venv/bin/python
+SOFFICE_DIR=""
+if [ -d /Applications/LibreOffice.app ]; then
   SOFFICE="/Applications/LibreOffice.app/Contents/MacOS/soffice"
-elif [[ "$(uname -s 2>/dev/null)" == *"MINGW"* ]] || [[ "$(uname -s 2>/dev/null)" == *"MSYS"* ]] || [[ "$OS" == "Windows_NT" ]]; then
+  SOFFICE_DIR="/Applications/LibreOffice.app/Contents/MacOS"
+elif [ -f "/c/Program Files/LibreOffice/program/soffice.exe" ]; then
   VENV_PYTHON=~/.claude/skills/jetredline/.venv/Scripts/python.exe
-  # Auto-detect LibreOffice on Windows
-  if [ -f "/c/Program Files/LibreOffice/program/soffice.exe" ]; then
-    SOFFICE="/c/Program Files/LibreOffice/program/soffice.exe"
-  elif [ -f "/c/Program Files (x86)/LibreOffice/program/soffice.exe" ]; then
-    SOFFICE="/c/Program Files (x86)/LibreOffice/program/soffice.exe"
-  else
-    SOFFICE="soffice"
-  fi
+  SOFFICE="/c/Program Files/LibreOffice/program/soffice.exe"
+  SOFFICE_DIR="/c/Program Files/LibreOffice/program"
+elif [ -f "/c/Program Files (x86)/LibreOffice/program/soffice.exe" ]; then
+  VENV_PYTHON=~/.claude/skills/jetredline/.venv/Scripts/python.exe
+  SOFFICE="/c/Program Files (x86)/LibreOffice/program/soffice.exe"
+  SOFFICE_DIR="/c/Program Files (x86)/LibreOffice/program"
 else
-  # Linux
-  VENV_PYTHON=~/.claude/skills/jetredline/.venv/bin/python
+  # Linux or other — assume soffice is on PATH
   SOFFICE="soffice"
 fi
 ```
@@ -46,14 +45,17 @@ If running in **PowerShell** (Windows without Git Bash):
 $VENV_PYTHON = "$HOME\.claude\skills\jetredline\.venv\Scripts\python.exe"
 if (Test-Path "C:\Program Files\LibreOffice\program\soffice.exe") {
   $SOFFICE = "C:\Program Files\LibreOffice\program\soffice.exe"
+  $SOFFICE_DIR = "C:\Program Files\LibreOffice\program"
 } elseif (Test-Path "C:\Program Files (x86)\LibreOffice\program\soffice.exe") {
   $SOFFICE = "C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+  $SOFFICE_DIR = "C:\Program Files (x86)\LibreOffice\program"
 } else {
   $SOFFICE = "soffice"
+  $SOFFICE_DIR = ""
 }
 ```
 
-Use `$VENV_PYTHON` and `$SOFFICE` in all subsequent commands instead of hardcoded paths.
+Use `$VENV_PYTHON`, `$SOFFICE`, and `$SOFFICE_DIR` in all subsequent commands instead of hardcoded paths.
 
 **Environment variable syntax** differs by shell:
 - Bash (macOS/Linux/Git Bash): `VAR=val command`
@@ -106,9 +108,9 @@ uv pip install defusedxml pikepdf textstat --python $VENV_PYTHON
 
 **Step 0 temp-dir setup (run once):**
 ```bash
-SKILL_TMPDIR="$PWD/.tmp-$(python3 -c "import uuid; print(str(uuid.uuid4())[:12])")" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
+python3 -c "import uuid,os; d=os.path.join(os.getcwd(),'.tmp-'+str(uuid.uuid4())[:12]); os.makedirs(d,exist_ok=True); print(d)"
 ```
-This generates a UUID-based unique directory name (e.g., `.tmp-a1b2c3d4e5f6`), preventing collisions between concurrent sessions. Works cross-platform (no dependency on `/usr/share/dict/words`).
+This generates a UUID-based unique directory name (e.g., `.tmp-a1b2c3d4e5f6`), preventing collisions between concurrent sessions. Uses `python3` directly — no shell command substitution needed.
 
 **Capture the output** (the absolute path printed by `echo`) and use it as a literal string in all subsequent commands. For example, if the output is `/path/to/cases/smith/.tmp-a1b2c3d4e5f6`, then every later command uses:
 ```
@@ -136,13 +138,13 @@ where `<TMPDIR>` is the literal path captured in Step 0 (e.g., `/path/to/cases/s
 `soffice` may not be on PATH by default. The docx skill's `pack.py` uses it for validation. **Always prepend the LibreOffice path (via `$SOFFICE`) and set TMPDIR when running pack.py or any command that invokes soffice:**
 
 ```bash
-TMPDIR=<TMPDIR> PATH="$(dirname "$SOFFICE"):$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
+TMPDIR=<TMPDIR> PATH="$SOFFICE_DIR:$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 ```
-where `<TMPDIR>` is the literal absolute path from Step 0.
+where `<TMPDIR>` is the literal absolute path from Step 0. `$SOFFICE_DIR` was set in Platform Detection above.
 
 Do not use `--force` with pack.py. Run `ooxml_fixup.py` before packing to resolve issues that previously required `--force`. If pack.py still reports errors, run `ooxml_validate.py` to diagnose.
 
-Also use this PATH prefix (or invoke `$SOFFICE` directly) for document-to-image conversion (`"$SOFFICE" --headless --convert-to pdf`) and any other LibreOffice operations.
+Also use this PATH prefix (or invoke `$SOFFICE` directly) for document-to-image conversion (`$SOFFICE --headless --convert-to pdf`) and any other LibreOffice operations.
 
 ## Workflow
 
@@ -152,7 +154,7 @@ Also use this PATH prefix (or invoke `$SOFFICE` directly) for document-to-image 
 
 **First, create the temp directory** with a unique random name:
 ```bash
-SKILL_TMPDIR="$PWD/.tmp-$(python3 -c "import uuid; print(str(uuid.uuid4())[:12])")" && mkdir -p "$SKILL_TMPDIR" && echo "$SKILL_TMPDIR"
+python3 -c "import uuid,os; d=os.path.join(os.getcwd(),'.tmp-'+str(uuid.uuid4())[:12]); os.makedirs(d,exist_ok=True); print(d)"
 ```
 **Capture the absolute path** printed by this command (e.g., `/path/to/cases/smith/.tmp-a1b2c3d4e5f6`). Use this literal path as `TMPDIR=<path>` in all subsequent commands — never use `$(pwd)` or other command substitution for TMPDIR.
 
@@ -684,7 +686,7 @@ Use the docx skill to produce a .docx with:
    ```
 5. **Pack** the directory into a .docx (without `--force`):
    ```bash
-   TMPDIR=<TMPDIR> PATH="$(dirname "$SOFFICE"):$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <unpacked_dir> <output.docx>
+   TMPDIR=<TMPDIR> PATH="$SOFFICE_DIR:$PATH" PYTHONPATH=~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ $VENV_PYTHON ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741/skills/docx/ooxml/scripts/pack.py <unpacked_dir> <output.docx>
    ```
 
 Do not use `--force` with pack.py. The fixup script resolves issues that previously required it. If validation fails, run `ooxml_validate.py` to diagnose.
