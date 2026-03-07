@@ -1,4 +1,4 @@
 defusedxml
-jetcite @ file:///Users/jerod/code/jetcite
+./vendor/jetcite-0.5.0-py3-none-any.whl
 pikepdf
 textstat
